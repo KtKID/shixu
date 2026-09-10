@@ -6,3 +6,4 @@ export * from './auth';
 export * from './sync';
 export * from './health';
 export * from './settings';
+export * from './capture-target';

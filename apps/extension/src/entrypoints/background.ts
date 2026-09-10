@@ -1,4 +1,7 @@
+import { registerCaptureCommand } from '../lib/capture-invoke';
+
 export default defineBackground(() => {
-  // MVP 切片：后台无任务。同步（登录/推拉）与 Resurface 在后续切片接入。
+  // 快捷命令唤起收藏面板；同步（登录/推拉）与 Resurface 在后续切片接入。
+  registerCaptureCommand();
   console.log('[x-threadpick] background ready');
 });
