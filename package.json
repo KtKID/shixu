@@ -1,0 +1,33 @@
+{
+  "name": "x-threadpick",
+  "private": true,
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "pnpm -r --if-present test",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
+    "check": "pnpm typecheck && pnpm lint && pnpm format:check",
+    "dev:ext": "pnpm --filter @x-threadpick/extension dev",
+    "dev:server": "pnpm --filter @x-threadpick/server dev",
+    "build:ext": "pnpm --filter @x-threadpick/extension build",
+    "build:ext:firefox": "pnpm --filter @x-threadpick/extension build:firefox"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.20.0",
+    "eslint": "^9.20.0",
+    "prettier": "^3.4.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.24.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "better-sqlite3"
+    ]
+  }
+}

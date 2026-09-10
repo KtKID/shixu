@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>拾绪 · 收藏</title>
+    <style>
+      :root {
+        --bg: #f6f1e8;
+        --card: #fffdf8;
+        --ink: #2e2820;
+        --ink-soft: #6f6557;
+        --ink-faint: #a89b88;
+        --line: #e7ddcc;
+        --accent: #b5502a;
+        --accent-soft: #f3e2d8;
+        --accent-ink: #8f3d1e;
+        --ok: #5d7d4f;
+        --radius: 12px;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html {
+        -webkit-font-smoothing: antialiased;
+      }
+
+      body {
+        width: 360px;
+        background: linear-gradient(180deg, #f8f2e7 0%, var(--bg) 100%);
+        color: var(--ink);
+        font-family:
+          -apple-system, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .serif {
+        font-family: Georgia, 'Songti SC', 'Noto Serif SC', serif;
+      }
+
+      /* ── 顶栏 ── */
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 16px 8px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .brand-mark {
+        width: 22px;
+        height: 22px;
+        border-radius: 7px;
+        background: linear-gradient(135deg, #c25c33, #a03f1d);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fbf3e7;
+        font-size: 11px;
+        box-shadow: 0 2px 6px rgba(160, 63, 29, 0.3);
+      }
+      .brand-name {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+      }
+      .shortcut-hint {
+        font-size: 10.5px;
+        color: var(--ink-faint);
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        padding: 1px 6px;
+        background: #fbf8f1;
+        letter-spacing: 0.03em;
+      }
+
+      /* ── 页面信息 ── */
+      .page-info {
+        margin: 0 14px 10px;
+        padding: 10px 12px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+      }
+      .favicon {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        flex: none;
+        background: linear-gradient(135deg, #e8dcc4, #d5c4a3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        color: #8a7350;
+        font-family: Georgia, serif;
+      }
+      .page-title {
+        font-size: 13px;
+        font-weight: 600;
+        line-height: 1.4;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .page-url {
+        font-size: 11px;
+        color: var(--ink-faint);
+        margin-top: 3px;
+        font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* ── 收藏理由（主角） ── */
+      .context {
+        margin: 0 14px 10px;
+        padding: 10px 12px 11px;
+        background: var(--card);
+        border: 1px solid #e2cfa8;
+        border-radius: var(--radius);
+        box-shadow:
+          0 1px 2px rgba(62, 48, 32, 0.04),
+          0 6px 18px rgba(195, 154, 75, 0.1);
+      }
+      .context label {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        font-size: 12px;
+        color: var(--accent-ink);
+        font-weight: 600;
+        margin-bottom: 7px;
+        letter-spacing: 0.03em;
+      }
+      .context label .optional {
+        font-size: 10.5px;
+        color: var(--ink-faint);
+        font-weight: 400;
+      }
+      .context textarea {
+        width: 100%;
+        border: none;
+        outline: none;
+        resize: none;
+        background: transparent;
+        font-family: inherit;
+        font-size: 13px;
+        color: var(--ink);
+        line-height: 1.55;
+        min-height: 40px;
+      }
+      .context textarea::placeholder {
+        color: var(--ink-faint);
+      }
+
+      /* ── 四维 ── */
+      .dims {
+        margin: 0 14px 4px;
+      }
+      .dim {
+        padding: 7px 12px 9px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        margin-bottom: 6px;
+      }
+      .dim-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-bottom: 6px;
+      }
+      .dim-name {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--ink-soft);
+      }
+      .dim-name .q {
+        font-weight: 400;
+        color: var(--ink-faint);
+        font-size: 11px;
+        margin-left: 6px;
+      }
+      .dim-mode {
+        font-size: 10px;
+        color: var(--ink-faint);
+        letter-spacing: 0.05em;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+      }
+      .chip {
+        padding: 2px 10px;
+        border-radius: 16px;
+        border: 1px solid #e0d4bf;
+        background: #fff;
+        font-size: 12px;
+        color: var(--ink);
+        cursor: pointer;
+        user-select: none;
+        -webkit-user-select: none;
+        transition: all 0.14s;
+      }
+      .chip:hover {
+        border-color: var(--accent);
+      }
+      .chip.on {
+        background: linear-gradient(135deg, #bc5830, #a5471f);
+        border-color: transparent;
+        color: #fdf3e8;
+        box-shadow: 0 2px 8px rgba(160, 63, 29, 0.25);
+      }
+      .chip.flow {
+        border-style: dashed;
+      }
+      .chip.flow.on {
+        border-style: solid;
+      }
+
+      /* ── 底部动作 ── */
+      .footer {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 8px 14px 12px;
+      }
+      .btn {
+        border: none;
+        border-radius: 9px;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 13px;
+        padding: 10px 14px;
+        transition: all 0.16s;
+      }
+      .btn-primary {
+        flex: 1;
+        background: linear-gradient(135deg, #bc5830, #a03f1d);
+        color: #fdf6ec;
+        font-weight: 600;
+        box-shadow: 0 3px 12px rgba(160, 63, 29, 0.28);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+      }
+      .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 5px 16px rgba(160, 63, 29, 0.34);
+      }
+      .btn-primary .kbd {
+        font-size: 10px;
+        opacity: 0.75;
+        font-weight: 400;
+        border: 1px solid rgba(253, 246, 236, 0.4);
+        border-radius: 4px;
+        padding: 0 5px;
+      }
+      .btn-ghost {
+        background: transparent;
+        color: var(--ink-soft);
+        border: 1px solid var(--line);
+      }
+      .btn-ghost:hover {
+        color: var(--accent-ink);
+        border-color: #ddc9b6;
+        background: var(--accent-soft);
+      }
+
+      /* ── 已保存态 ── */
+      .saved-banner {
+        display: none;
+        margin: 0 14px 12px;
+        padding: 9px 14px;
+        background: #e6eddf;
+        border: 1px solid #d3dfc6;
+        border-radius: 10px;
+        font-size: 12px;
+        color: var(--ok);
+        align-items: center;
+        gap: 7px;
+      }
+      .saved-banner.on {
+        display: flex;
+      }
+
+      .dims-hint {
+        text-align: center;
+        font-size: 10.5px;
+        color: var(--ink-faint);
+        padding: 0 0 6px;
+        letter-spacing: 0.03em;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-mark serif">✦</div>
+        <div class="brand-name">拾绪</div>
+      </div>
+      <span class="shortcut-hint">⌘⇧S</span>
+    </div>
+
+    <div class="page-info">
+      <div class="favicon serif">W</div>
+      <div style="min-width: 0">
+        <div class="page-title">
+          World Models for Interactive Environments: A Survey on Video Prediction…
+        </div>
+        <div class="page-url">arxiv.org/abs/2401.00001</div>
+      </div>
+    </div>
+
+    <div class="saved-banner" id="savedBanner">✓ 已存入 Inbox，Tab 即将关闭</div>
+
+    <div class="context">
+      <label for="why">为什么收藏？<span class="optional">可选，但这句话以后最管用</span></label>
+      <textarea
+        id="why"
+        rows="2"
+        placeholder="想看看 action 如何影响环境预测，以后用于游戏 Agent benchmark…"
+      ></textarea>
+    </div>
+
+    <div class="dims">
+      <div class="dim" data-multi="1">
+        <div class="dim-head">
+          <div class="dim-name">主题<span class="q">它讲什么？</span></div>
+          <span class="dim-mode">可多选</span>
+        </div>
+        <div class="chips">
+          <span class="chip">AI</span>
+          <span class="chip">Harness</span>
+          <span class="chip on">世界模型</span>
+          <span class="chip">上下文工程</span>
+        </div>
+      </div>
+
+      <div class="dim" data-multi="1">
+        <div class="dim-head">
+          <div class="dim-name">形态<span class="q">它是什么？</span></div>
+          <span class="dim-mode">可多选</span>
+        </div>
+        <div class="chips">
+          <span class="chip">博客文章</span>
+          <span class="chip">GitHub 仓库</span>
+          <span class="chip on">论文</span>
+          <span class="chip">文档</span>
+        </div>
+      </div>
+
+      <div class="dim" data-multi="1">
+        <div class="dim-head">
+          <div class="dim-name">用途<span class="q">我拿它干什么？</span></div>
+          <span class="dim-mode">可多选</span>
+        </div>
+        <div class="chips">
+          <span class="chip on">学习原理</span>
+          <span class="chip">项目参考</span>
+          <span class="chip">工具备用</span>
+        </div>
+      </div>
+
+      <div class="dim" data-multi="0">
+        <div class="dim-head">
+          <div class="dim-name">状态<span class="q">我处理到哪了？</span></div>
+          <span class="dim-mode">单选</span>
+        </div>
+        <div class="chips">
+          <span class="chip flow on">Inbox</span>
+          <span class="chip flow">Reading</span>
+          <span class="chip flow">Done</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="dims-hint">维度的取值在「设置」里统一管理，这里只做点选</div>
+
+    <div class="footer">
+      <button class="btn btn-primary" id="saveCloseBtn">
+        保存并关闭 Tab <span class="kbd">⏎</span>
+      </button>
+      <button class="btn btn-ghost" id="saveBtn">仅保存</button>
+    </div>
+
+    <script>
+      /* ── 四维点选（静态演示）：多选 toggle / 单选切换 ── */
+      document.querySelectorAll('.dim').forEach((dim) => {
+        const multi = dim.dataset.multi === '1';
+        dim.querySelectorAll('.chip').forEach((chip) => {
+          chip.addEventListener('click', () => {
+            if (multi) {
+              chip.classList.toggle('on');
+            } else {
+              dim.querySelectorAll('.chip').forEach((c) => c.classList.remove('on'));
+              chip.classList.add('on');
+            }
+          });
+        });
+      });
+
+      /* ── 保存（静态演示） ── */
+      const banner = document.getElementById('savedBanner');
+      document.getElementById('saveCloseBtn').addEventListener('click', () => {
+        banner.textContent = '✓ 已存入 Inbox，Tab 即将关闭';
+        banner.classList.add('on');
+      });
+      document.getElementById('saveBtn').addEventListener('click', () => {
+        banner.textContent = '✓ 已存入 Inbox';
+        banner.classList.add('on');
+      });
+    </script>
+  </body>
+</html>

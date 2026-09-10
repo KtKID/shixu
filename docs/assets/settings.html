@@ -1,0 +1,1044 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>拾绪 · 设置</title>
+    <style>
+      :root {
+        --bg: #f6f1e8;
+        --bg-deep: #efe8da;
+        --card: #fffdf8;
+        --ink: #2e2820;
+        --ink-soft: #6f6557;
+        --ink-faint: #a89b88;
+        --line: #e7ddcc;
+        --accent: #b5502a;
+        --accent-soft: #f3e2d8;
+        --accent-ink: #8f3d1e;
+        --gold: #c39a4b;
+        --ok: #5d7d4f;
+        --ok-soft: #e6eddf;
+        --radius: 14px;
+        --shadow: 0 1px 2px rgba(62, 48, 32, 0.05), 0 8px 28px rgba(62, 48, 32, 0.07);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html {
+        -webkit-font-smoothing: antialiased;
+      }
+
+      body {
+        background:
+          radial-gradient(1200px 500px at 80% -10%, #f9efe0 0%, transparent 60%),
+          radial-gradient(900px 420px at -10% 30%, #f3ece0 0%, transparent 55%), var(--bg);
+        color: var(--ink);
+        font-family:
+          -apple-system, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+        font-size: 14px;
+        line-height: 1.6;
+        min-height: 100vh;
+        padding: 56px 24px 96px;
+      }
+
+      .serif {
+        font-family: Georgia, 'Times New Roman', 'Songti SC', 'Noto Serif SC', serif;
+      }
+
+      .page {
+        max-width: 680px;
+        margin: 0 auto;
+      }
+
+      /* ── 头部 ── */
+      header {
+        margin-bottom: 44px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+      .brand-mark {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #c25c33, #a03f1d);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fbf3e7;
+        font-size: 16px;
+        box-shadow: 0 3px 10px rgba(160, 63, 29, 0.3);
+      }
+      .brand-name {
+        font-size: 15px;
+        letter-spacing: 0.04em;
+        color: var(--ink-soft);
+      }
+      .brand-name b {
+        color: var(--ink);
+        font-weight: 600;
+      }
+      h1 {
+        font-size: 34px;
+        font-weight: 500;
+        letter-spacing: 0.01em;
+        font-family: Georgia, 'Songti SC', 'Noto Serif SC', serif;
+      }
+      .subtitle {
+        color: var(--ink-faint);
+        margin-top: 6px;
+        font-size: 13px;
+        letter-spacing: 0.02em;
+      }
+
+      /* ── 卡片 ── */
+      section.card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 28px 30px 30px;
+        margin-bottom: 22px;
+      }
+      .card-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-bottom: 6px;
+      }
+      .card-title {
+        font-size: 17px;
+        font-weight: 500;
+        font-family: Georgia, 'Songti SC', serif;
+      }
+      .card-title .en {
+        color: var(--ink-faint);
+        font-size: 12px;
+        margin-left: 8px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        font-family: -apple-system, 'PingFang SC', sans-serif;
+      }
+      .card-desc {
+        color: var(--ink-soft);
+        font-size: 13px;
+        margin-bottom: 20px;
+      }
+
+      /* ── 表单 ── */
+      .field-row {
+        display: flex;
+        gap: 14px;
+      }
+      .field {
+        flex: 1;
+        margin-bottom: 16px;
+      }
+      .field.narrow {
+        flex: 0 0 128px;
+      }
+      label {
+        display: block;
+        font-size: 12px;
+        color: var(--ink-soft);
+        margin-bottom: 7px;
+        letter-spacing: 0.05em;
+      }
+      input[type='text'],
+      input[type='password'],
+      input[type='email'],
+      input[type='number'] {
+        width: 100%;
+        padding: 10px 14px;
+        background: #fbf8f1;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        font-size: 14px;
+        color: var(--ink);
+        outline: none;
+        transition:
+          border-color 0.18s,
+          box-shadow 0.18s,
+          background 0.18s;
+      }
+      input::placeholder {
+        color: var(--ink-faint);
+      }
+      input:focus {
+        border-color: var(--accent);
+        background: #fff;
+        box-shadow: 0 0 0 3px rgba(181, 80, 42, 0.12);
+      }
+
+      /* ── 按钮 ── */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 10px 20px;
+        border-radius: 9px;
+        border: 1px solid transparent;
+        font-size: 13.5px;
+        cursor: pointer;
+        transition: all 0.18s;
+        font-family: inherit;
+      }
+      .btn-primary {
+        background: linear-gradient(135deg, #bc5830, #a03f1d);
+        color: #fdf6ec;
+        box-shadow: 0 3px 12px rgba(160, 63, 29, 0.28);
+      }
+      .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 5px 16px rgba(160, 63, 29, 0.34);
+      }
+      .btn-ghost {
+        background: transparent;
+        color: var(--accent-ink);
+        border-color: #ddc9b6;
+      }
+      .btn-ghost:hover {
+        background: var(--accent-soft);
+        border-color: var(--accent);
+      }
+      .btn:disabled {
+        opacity: 0.55;
+        cursor: default;
+        transform: none !important;
+      }
+
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-top: 4px;
+      }
+
+      /* ── 服务器历史 ── */
+      .srv-list {
+        margin-top: 24px;
+        border-top: 1px dashed var(--line);
+        padding-top: 16px;
+      }
+      .srv-list-title {
+        font-size: 11.5px;
+        color: var(--ink-faint);
+        letter-spacing: 0.08em;
+        margin-bottom: 12px;
+      }
+      .srv-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 11px 14px;
+        margin-bottom: 8px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #fdfaf4;
+        transition:
+          border-color 0.15s,
+          background 0.15s;
+      }
+      .srv-item.active {
+        border-color: #d99a7c;
+        background: #fdf4ec;
+      }
+      .srv-radio {
+        width: 15px;
+        height: 15px;
+        border-radius: 50%;
+        flex: none;
+        border: 1.5px solid #cbbfa9;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: border-color 0.15s;
+      }
+      .srv-radio:hover {
+        border-color: var(--accent);
+      }
+      .srv-item.active .srv-radio {
+        border-color: var(--accent);
+      }
+      .srv-item.active .srv-radio::after {
+        content: '';
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--accent);
+      }
+      .srv-info {
+        flex: 1;
+        min-width: 0;
+      }
+      .srv-addr {
+        font-size: 13.5px;
+        font-weight: 500;
+        font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+        cursor: pointer;
+      }
+      .srv-addr:hover {
+        color: var(--accent-ink);
+      }
+      .srv-colon {
+        color: var(--ink-faint);
+        margin: 0 1px;
+      }
+      .srv-badge {
+        margin-left: 8px;
+        font-size: 10px;
+        color: var(--accent-ink);
+        background: var(--accent-soft);
+        border-radius: 10px;
+        padding: 1.5px 8px;
+        font-family: -apple-system, 'PingFang SC', sans-serif;
+        letter-spacing: 0.05em;
+        vertical-align: 1px;
+      }
+      .srv-meta {
+        font-size: 11.5px;
+        color: var(--ink-faint);
+        margin-top: 1px;
+      }
+      .srv-actions {
+        display: flex;
+        gap: 12px;
+        flex: none;
+      }
+      .srv-edit {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .srv-edit input {
+        padding: 6px 10px;
+        font-size: 13px;
+        font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+      }
+      .srv-edit .e-port {
+        width: 84px;
+        flex: none;
+      }
+
+      /* ── 状态 ── */
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 12.5px;
+        color: var(--ink-soft);
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #cbbfa9;
+        flex: none;
+      }
+      .dot.ok {
+        background: var(--ok);
+        box-shadow: 0 0 0 3px rgba(93, 125, 79, 0.16);
+      }
+      .dot.err {
+        background: var(--accent);
+        box-shadow: 0 0 0 3px rgba(181, 80, 42, 0.14);
+      }
+      .dot.busy {
+        background: var(--gold);
+        animation: pulse 1s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        50% {
+          opacity: 0.35;
+        }
+      }
+
+      /* ── 登录态 ── */
+      .session {
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--ok-soft);
+        border: 1px solid #d3dfc6;
+        border-radius: 10px;
+        padding: 14px 18px;
+        margin-bottom: 18px;
+      }
+      .session.on {
+        display: flex;
+      }
+      .session-id {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #c9a15f, #a87f3c);
+        color: #fff8ea;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-family: Georgia, serif;
+      }
+      .session-meta {
+        font-size: 13px;
+      }
+      .session-meta small {
+        display: block;
+        color: var(--ink-soft);
+        font-size: 11.5px;
+      }
+      .link-btn {
+        background: none;
+        border: none;
+        color: var(--accent-ink);
+        font-size: 12.5px;
+        cursor: pointer;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+        text-decoration-color: #d8b6a3;
+      }
+
+      /* ── 维度 ── */
+      .dim-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      .dim {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 18px 18px 16px;
+        background: #fdfaf4;
+      }
+      .dim-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-bottom: 3px;
+      }
+      .dim-name {
+        font-size: 14.5px;
+        font-weight: 600;
+      }
+      .dim-name .en {
+        color: var(--ink-faint);
+        font-weight: 400;
+        font-size: 11px;
+        margin-left: 6px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .dim-mode {
+        font-size: 10.5px;
+        color: var(--accent-ink);
+        background: var(--accent-soft);
+        padding: 2px 9px;
+        border-radius: 20px;
+        letter-spacing: 0.05em;
+      }
+      .dim-mode.neutral {
+        color: var(--ink-soft);
+        background: #efe9dc;
+      }
+      .dim-q {
+        font-size: 12px;
+        color: var(--ink-faint);
+        margin-bottom: 13px;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 13px;
+        min-height: 30px;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #fff;
+        border: 1px solid #e0d4bf;
+        border-radius: 20px;
+        padding: 4px 8px 4px 13px;
+        font-size: 13px;
+        color: var(--ink);
+        transition:
+          border-color 0.15s,
+          box-shadow 0.15s;
+      }
+      .chip:hover {
+        border-color: var(--accent);
+        box-shadow: 0 2px 8px rgba(181, 80, 42, 0.1);
+      }
+      .chip .x {
+        width: 17px;
+        height: 17px;
+        border-radius: 50%;
+        border: none;
+        background: #f0e8d9;
+        color: var(--ink-faint);
+        font-size: 11px;
+        line-height: 1;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s;
+      }
+      .chip .x:hover {
+        background: var(--accent);
+        color: #fdf3e8;
+      }
+      .chip.flow {
+        border-style: dashed;
+        border-color: #d9c3ae;
+        background: #fbf5ea;
+        padding: 3px 6px 3px 10px;
+        font-size: 12px;
+        cursor: grab;
+        user-select: none;
+        -webkit-user-select: none;
+        touch-action: none;
+      }
+      .chip.flow:active {
+        cursor: grabbing;
+      }
+      .chip.flow.dragging {
+        opacity: 0.35;
+      }
+      .chip.flow.drop-before {
+        box-shadow: inset 3px 0 0 var(--accent);
+      }
+      .chip.flow.drop-after {
+        box-shadow: inset -3px 0 0 var(--accent);
+      }
+      .chip .arrow,
+      .chips > .arrow {
+        color: var(--ink-faint);
+        font-size: 11px;
+        margin: 0 -2px;
+        align-self: center;
+      }
+
+      .chip-add {
+        display: flex;
+        gap: 8px;
+      }
+      .dim-wide {
+        grid-column: 1 / -1;
+      }
+      .dim-wide .chip-add {
+        max-width: 320px;
+      }
+      .chip-add input {
+        flex: 1;
+        padding: 7px 12px;
+        font-size: 13px;
+        border-radius: 20px;
+        background: #fff;
+      }
+      .chip-add button {
+        flex: none;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: 1px solid #ddc9b6;
+        background: transparent;
+        color: var(--accent-ink);
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.15s;
+        line-height: 1;
+      }
+      .chip-add button:hover {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fdf3e8;
+      }
+
+      .dim-note {
+        margin-top: 18px;
+        padding: 12px 16px;
+        background: #f7f1e5;
+        border-left: 3px solid var(--gold);
+        border-radius: 0 8px 8px 0;
+        font-size: 12.5px;
+        color: var(--ink-soft);
+      }
+
+      footer {
+        text-align: center;
+        color: var(--ink-faint);
+        font-size: 12px;
+        margin-top: 40px;
+        letter-spacing: 0.06em;
+      }
+
+      @media (max-width: 560px) {
+        .dim-grid {
+          grid-template-columns: 1fr;
+        }
+        .field-row {
+          flex-direction: column;
+          gap: 0;
+        }
+        .field.narrow {
+          flex: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <div class="brand">
+          <div class="brand-mark serif">✦</div>
+          <div class="brand-name"><b>拾绪</b> · 个人上下文记忆层</div>
+        </div>
+        <h1 class="serif">设置</h1>
+        <p class="subtitle">连接你的同步服务，定义属于你的分类维度。</p>
+      </header>
+
+      <!-- ═══ 服务器连接 ═══ -->
+      <section class="card">
+        <div class="card-head">
+          <div class="card-title serif">服务器<span class="en">Server</span></div>
+          <div class="status" id="connStatus">
+            <span class="dot" id="connDot"></span><span id="connText">尚未测试连接</span>
+          </div>
+        </div>
+        <p class="card-desc">书签的 URL、标题、摘要、备注与分类属性将同步到此服务。</p>
+        <div class="field-row">
+          <div class="field">
+            <label for="host">服务器地址</label>
+            <input type="text" id="host" placeholder="sync.example.com" value="sync.example.com" />
+          </div>
+          <div class="field narrow">
+            <label for="port">端口</label>
+            <input type="number" id="port" placeholder="8443" value="8443" />
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-ghost" id="testBtn">测试连接</button>
+          <span class="status" id="connDetail"></span>
+        </div>
+
+        <div class="srv-list">
+          <div class="srv-list-title">历史服务器 · 登录成功后自动记录，点击即可切换</div>
+          <div id="srvItems"></div>
+        </div>
+      </section>
+
+      <!-- ═══ 账号 ═══ -->
+      <section class="card">
+        <div class="card-head">
+          <div class="card-title serif">账号<span class="en">Account</span></div>
+          <div class="status" id="loginStatus">
+            <span class="dot" id="loginDot"></span><span id="loginText">未登录</span>
+          </div>
+        </div>
+
+        <div class="session" id="sessionBox">
+          <div class="session-id">
+            <div class="avatar serif">W</div>
+            <div class="session-meta">
+              <b id="sessionEmail">wes@example.com</b>
+              <small>上次同步：今天 14:32 · 本地 128 条书签已是最新</small>
+            </div>
+          </div>
+          <button class="link-btn" id="logoutBtn">退出登录</button>
+        </div>
+
+        <div id="loginForm">
+          <p class="card-desc">使用邮箱与密码登录，登录后开启增量同步。</p>
+          <div class="field">
+            <label for="email">邮箱</label>
+            <input type="email" id="email" placeholder="you@example.com" />
+          </div>
+          <div class="field">
+            <label for="password">密码</label>
+            <input type="password" id="password" placeholder="••••••••••" />
+          </div>
+          <div class="actions">
+            <button class="btn btn-primary" id="loginBtn">登录</button>
+            <span class="status">还没有账号？<button class="link-btn">注册</button></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══ 分类维度 ═══ -->
+      <section class="card">
+        <div class="card-head">
+          <div class="card-title serif">分类维度<span class="en">Dimensions</span></div>
+        </div>
+        <p class="card-desc">同一份书签，从四个角度找回。维度固定，取值完全由你定义。</p>
+
+        <div class="dim-grid">
+          <div class="dim">
+            <div class="dim-head">
+              <div class="dim-name">主题<span class="en">Topic</span></div>
+              <span class="dim-mode">多选</span>
+            </div>
+            <p class="dim-q">它讲什么？</p>
+            <div class="chips" data-dim="topic">
+              <span class="chip">AI<button class="x">×</button></span>
+              <span class="chip">Harness<button class="x">×</button></span>
+              <span class="chip">世界模型<button class="x">×</button></span>
+              <span class="chip">上下文工程<button class="x">×</button></span>
+            </div>
+            <div class="chip-add">
+              <input type="text" placeholder="新主题…" />
+              <button title="添加">+</button>
+            </div>
+          </div>
+
+          <div class="dim">
+            <div class="dim-head">
+              <div class="dim-name">形态<span class="en">Type</span></div>
+              <span class="dim-mode">多选</span>
+            </div>
+            <p class="dim-q">它是什么？</p>
+            <div class="chips" data-dim="type">
+              <span class="chip">博客文章<button class="x">×</button></span>
+              <span class="chip">GitHub 仓库<button class="x">×</button></span>
+              <span class="chip">论文<button class="x">×</button></span>
+              <span class="chip">文档<button class="x">×</button></span>
+            </div>
+            <div class="chip-add">
+              <input type="text" placeholder="新形态…" />
+              <button title="添加">+</button>
+            </div>
+          </div>
+
+          <div class="dim">
+            <div class="dim-head">
+              <div class="dim-name">用途<span class="en">Purpose</span></div>
+              <span class="dim-mode">多选</span>
+            </div>
+            <p class="dim-q">我拿它干什么？</p>
+            <div class="chips" data-dim="purpose">
+              <span class="chip">学习原理<button class="x">×</button></span>
+              <span class="chip">项目参考<button class="x">×</button></span>
+              <span class="chip">工具备用<button class="x">×</button></span>
+            </div>
+            <div class="chip-add">
+              <input type="text" placeholder="新用途…" />
+              <button title="添加">+</button>
+            </div>
+          </div>
+
+          <div class="dim dim-wide">
+            <div class="dim-head">
+              <div class="dim-name">状态<span class="en">Status</span></div>
+              <span class="dim-mode neutral">单选 · 流转</span>
+            </div>
+            <p class="dim-q">我处理到哪了？</p>
+            <div class="chips" data-dim="status">
+              <span class="chip flow">Inbox<button class="x">×</button></span>
+              <span class="arrow">→</span>
+              <span class="chip flow">Reading<button class="x">×</button></span>
+              <span class="arrow">→</span>
+              <span class="chip flow">Done<button class="x">×</button></span>
+            </div>
+            <div class="chip-add">
+              <input type="text" placeholder="新状态…" />
+              <button title="添加">+</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="dim-note">
+          新收藏默认进入
+          <b>Inbox</b
+          >，四个维度都允许后补。删除某个取值不会影响书签本身，只会移除该属性标记。状态取值支持拖拽调整流转顺序。
+        </div>
+      </section>
+
+      <footer class="serif">Save → Understand → Resurface</footer>
+    </div>
+
+    <script>
+      /* ── 服务器历史（静态演示数据） ── */
+      const srvItems = document.getElementById('srvItems');
+      let servers = [
+        { host: 'sync.example.com', port: '8443', last: '今天 14:32', active: true },
+        { host: '192.168.1.8', port: '9000', last: '9月2日 21:07', active: false },
+      ];
+      let editingIdx = -1;
+
+      function renderServers() {
+        srvItems.innerHTML = '';
+        if (!servers.length) {
+          srvItems.innerHTML =
+            '<div class="srv-meta" style="padding:4px 2px">暂无记录，登录成功后自动保存。</div>';
+          return;
+        }
+        servers.forEach((s, i) => {
+          const row = document.createElement('div');
+          row.className = 'srv-item' + (s.active ? ' active' : '');
+
+          if (i === editingIdx) {
+            row.innerHTML = `
+          <div class="srv-edit">
+            <input type="text" class="e-host" value="${s.host}">
+            <span class="srv-colon">:</span>
+            <input type="number" class="e-port" value="${s.port}">
+          </div>
+          <div class="srv-actions">
+            <button class="link-btn save">保存</button>
+            <button class="link-btn cancel">取消</button>
+          </div>`;
+            row.querySelector('.save').addEventListener('click', () => {
+              const h = row.querySelector('.e-host').value.trim();
+              const p = row.querySelector('.e-port').value.trim();
+              if (h && p) {
+                s.host = h;
+                s.port = p;
+              }
+              if (s.active) {
+                document.getElementById('host').value = s.host;
+                document.getElementById('port').value = s.port;
+              }
+              editingIdx = -1;
+              renderServers();
+            });
+            row.querySelector('.cancel').addEventListener('click', () => {
+              editingIdx = -1;
+              renderServers();
+            });
+          } else {
+            row.innerHTML = `
+          <span class="srv-radio" title="切换到此服务器"></span>
+          <div class="srv-info">
+            <div class="srv-addr">${s.host}<span class="srv-colon">:</span>${s.port}${s.active ? '<span class="srv-badge">当前</span>' : ''}</div>
+            <div class="srv-meta">上次登录成功 · ${s.last}</div>
+          </div>
+          <div class="srv-actions">
+            <button class="link-btn edit">修改</button>
+            <button class="link-btn del">删除</button>
+          </div>`;
+            row.querySelector('.srv-radio').addEventListener('click', () => switchServer(i));
+            row.querySelector('.srv-addr').addEventListener('click', () => switchServer(i));
+            row.querySelector('.edit').addEventListener('click', () => {
+              editingIdx = i;
+              renderServers();
+            });
+            row.querySelector('.del').addEventListener('click', () => {
+              servers.splice(i, 1);
+              editingIdx = -1;
+              renderServers();
+            });
+          }
+          srvItems.appendChild(row);
+        });
+      }
+
+      function switchServer(i) {
+        servers.forEach((s, j) => (s.active = j === i));
+        const s = servers[i];
+        document.getElementById('host').value = s.host;
+        document.getElementById('port').value = s.port;
+        connDot.className = 'dot ok';
+        connText.textContent = '连接成功';
+        connDetail.textContent = `已切换至 ${s.host}:${s.port}`;
+        renderServers();
+      }
+
+      function recordServer(host, port) {
+        servers.forEach((s) => (s.active = false));
+        const exist = servers.find((s) => s.host === host && s.port === port);
+        if (exist) {
+          exist.active = true;
+          exist.last = '刚刚';
+        } else {
+          servers.unshift({ host, port, last: '刚刚', active: true });
+        }
+        renderServers();
+      }
+
+      /* ── 测试连接（静态演示） ── */
+      const testBtn = document.getElementById('testBtn');
+      const connDot = document.getElementById('connDot');
+      const connText = document.getElementById('connText');
+      const connDetail = document.getElementById('connDetail');
+
+      testBtn.addEventListener('click', () => {
+        const host = document.getElementById('host').value.trim();
+        const port = document.getElementById('port').value.trim();
+        testBtn.disabled = true;
+        connDot.className = 'dot busy';
+        connText.textContent = `正在连接 ${host || '—'}:${port || '—'} …`;
+        connDetail.textContent = '';
+        setTimeout(() => {
+          testBtn.disabled = false;
+          if (host && port) {
+            connDot.className = 'dot ok';
+            connText.textContent = '连接成功';
+            connDetail.textContent = '延迟 42ms · 服务版本 v0.1.0';
+            recordServer(host, port);
+          } else {
+            connDot.className = 'dot err';
+            connText.textContent = '连接失败';
+            connDetail.textContent = '请先填写服务器地址与端口';
+          }
+        }, 900);
+      });
+
+      renderServers();
+
+      /* ── 登录态切换（静态演示） ── */
+      const loginBtn = document.getElementById('loginBtn');
+      const logoutBtn = document.getElementById('logoutBtn');
+      const loginForm = document.getElementById('loginForm');
+      const sessionBox = document.getElementById('sessionBox');
+      const loginDot = document.getElementById('loginDot');
+      const loginText = document.getElementById('loginText');
+
+      loginBtn.addEventListener('click', () => {
+        const email = document.getElementById('email').value.trim();
+        loginBtn.disabled = true;
+        loginBtn.textContent = '登录中…';
+        setTimeout(() => {
+          loginBtn.disabled = false;
+          loginBtn.textContent = '登录';
+          document.getElementById('sessionEmail').textContent = email || 'wes@example.com';
+          loginForm.style.display = 'none';
+          sessionBox.classList.add('on');
+          loginDot.className = 'dot ok';
+          loginText.textContent = '已登录 · 同步开启';
+          const h = document.getElementById('host').value.trim();
+          const p = document.getElementById('port').value.trim();
+          if (h && p) recordServer(h, p);
+        }, 800);
+      });
+
+      logoutBtn.addEventListener('click', () => {
+        sessionBox.classList.remove('on');
+        loginForm.style.display = '';
+        loginDot.className = 'dot';
+        loginText.textContent = '未登录';
+      });
+
+      /* ── 维度取值：添加 / 删除 / 拖拽排序（静态演示） ── */
+      function reflowArrows(chips) {
+        chips.querySelectorAll('.arrow').forEach((a) => a.remove());
+        const list = chips.querySelectorAll('.chip');
+        list.forEach((c, i) => {
+          if (i < list.length - 1) {
+            const arrow = document.createElement('span');
+            arrow.className = 'arrow';
+            arrow.textContent = '→';
+            c.after(arrow);
+          }
+        });
+      }
+
+      document.querySelectorAll('.dim').forEach((dim) => {
+        const chips = dim.querySelector('.chips');
+        const input = dim.querySelector('.chip-add input');
+        const addBtn = dim.querySelector('.chip-add button');
+        const isFlow = dim.querySelector('.chip.flow') !== null;
+
+        chips.addEventListener('click', (e) => {
+          if (e.target.classList.contains('x')) {
+            e.target.closest('.chip').remove();
+            if (isFlow) reflowArrows(chips);
+          }
+        });
+
+        const add = () => {
+          const v = input.value.trim();
+          if (!v) return;
+          const chip = document.createElement('span');
+          chip.className = 'chip' + (isFlow ? ' flow' : '');
+          chip.innerHTML = `${v}<button class="x">×</button>`;
+          chips.appendChild(chip);
+          if (isFlow) reflowArrows(chips);
+          input.value = '';
+          input.focus();
+        };
+        addBtn.addEventListener('click', add);
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') add();
+        });
+
+        /* 流式状态：指针拖拽改变顺序（兼容 Chrome / Firefox / Safari） */
+        if (!isFlow) return;
+        let drag = null; // { el, startX, startY, moved, target, before }
+
+        chips.addEventListener('pointerdown', (e) => {
+          if (e.target.classList.contains('x')) return; // 不挡删除按钮
+          const chip = e.target.closest('.chip');
+          if (!chip) return;
+          e.preventDefault();
+          drag = {
+            el: chip,
+            startX: e.clientX,
+            startY: e.clientY,
+            moved: false,
+            target: null,
+            before: true,
+          };
+        });
+
+        document.addEventListener('pointermove', (e) => {
+          if (!drag) return;
+          if (!drag.moved) {
+            if (Math.abs(e.clientX - drag.startX) < 4 && Math.abs(e.clientY - drag.startY) < 4)
+              return;
+            drag.moved = true;
+            drag.el.classList.add('dragging');
+          }
+          drag.target = null;
+          chips
+            .querySelectorAll('.chip')
+            .forEach((c) => c.classList.remove('drop-before', 'drop-after'));
+          for (const c of chips.querySelectorAll('.chip')) {
+            if (c === drag.el) continue;
+            const r = c.getBoundingClientRect();
+            if (
+              e.clientX >= r.left - 8 &&
+              e.clientX <= r.right + 8 &&
+              e.clientY >= r.top - 8 &&
+              e.clientY <= r.bottom + 8
+            ) {
+              drag.target = c;
+              drag.before = e.clientX < r.left + r.width / 2;
+              c.classList.add(drag.before ? 'drop-before' : 'drop-after');
+              break;
+            }
+          }
+        });
+
+        document.addEventListener('pointerup', () => {
+          if (!drag) return;
+          if (drag.moved && drag.target) {
+            chips.insertBefore(drag.el, drag.before ? drag.target : drag.target.nextSibling);
+            reflowArrows(chips);
+          }
+          drag.el.classList.remove('dragging');
+          chips
+            .querySelectorAll('.chip')
+            .forEach((c) => c.classList.remove('drop-before', 'drop-after'));
+          drag = null;
+        });
+      });
+    </script>
+  </body>
+</html>

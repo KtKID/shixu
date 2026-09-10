@@ -1,0 +1,32 @@
+{
+  "name": "@x-threadpick/server",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "cli": "tsx src/cli.ts",
+    "db:push": "mkdir -p data && drizzle-kit push",
+    "smoke": "tsx scripts/smoke.ts",
+    "typecheck": "tsc --noEmit",
+    "check": "pnpm typecheck",
+    "smoke-settings": "tsx scripts/smoke-settings.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.14.0",
+    "@node-rs/argon2": "^2.0.0",
+    "@x-threadpick/shared": "workspace:*",
+    "better-sqlite3": "^11.8.0",
+    "drizzle-orm": "^0.44.0",
+    "hono": "^4.7.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/node": "^22.0.0",
+    "drizzle-kit": "^0.30.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}

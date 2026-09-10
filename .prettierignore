@@ -1,0 +1,8 @@
+node_modules
+.wxt
+.output
+dist
+build
+data
+pnpm-lock.yaml
+*.db

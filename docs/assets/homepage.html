@@ -1,0 +1,766 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>拾绪 · 新标签页</title>
+    <style>
+      :root {
+        --bg: #f5efe3;
+        --card: #fffdf8;
+        --ink: #2e2820;
+        --ink-soft: #6f6557;
+        --ink-faint: #a89b88;
+        --line: #e7ddcc;
+        --accent: #b5502a;
+        --accent-soft: #f3e2d8;
+        --accent-ink: #8f3d1e;
+        --gold: #c39a4b;
+        --radius: 14px;
+        --shadow: 0 1px 2px rgba(62, 48, 32, 0.05), 0 8px 24px rgba(62, 48, 32, 0.06);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html {
+        -webkit-font-smoothing: antialiased;
+      }
+
+      body {
+        min-height: 100vh;
+        color: var(--ink);
+        font-family:
+          -apple-system, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+        font-size: 14px;
+        line-height: 1.6;
+        background:
+          radial-gradient(1100px 480px at 75% -8%, #f8ecd7 0%, transparent 60%),
+          radial-gradient(800px 500px at 5% 110%, #efe5d2 0%, transparent 55%), var(--bg);
+        display: flex;
+      }
+      .serif {
+        font-family: Georgia, 'Songti SC', 'Noto Serif SC', serif;
+      }
+
+      /* ── 侧边栏 ── */
+      .sidebar {
+        width: 188px;
+        flex: none;
+        padding: 28px 18px;
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid rgba(231, 221, 204, 0.7);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 40px;
+      }
+      .brand-mark {
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #c25c33, #a03f1d);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fbf3e7;
+        font-size: 15px;
+        box-shadow: 0 3px 10px rgba(160, 63, 29, 0.3);
+      }
+      .brand-name {
+        font-size: 20px;
+        letter-spacing: 0.1em;
+        font-weight: 500;
+        font-family: Georgia, 'Songti SC', serif;
+      }
+
+      .nav {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding: 9px 12px;
+        border-radius: 9px;
+        font-size: 13.5px;
+        color: var(--ink-soft);
+        cursor: pointer;
+        transition: all 0.15s;
+        text-decoration: none;
+      }
+      .nav-item .ic {
+        width: 17px;
+        text-align: center;
+        font-size: 13px;
+        opacity: 0.8;
+      }
+      .nav-item:hover {
+        background: rgba(255, 253, 248, 0.7);
+        color: var(--ink);
+      }
+      .nav-item.active {
+        background: var(--card);
+        color: var(--accent-ink);
+        font-weight: 600;
+        box-shadow: var(--shadow);
+      }
+      .sidebar-quote {
+        margin-top: auto;
+        padding: 0 6px;
+        font-size: 12px;
+        color: var(--ink-faint);
+        line-height: 2;
+        font-family: Georgia, 'Songti SC', serif;
+      }
+
+      /* ── 主区 ── */
+      .main {
+        flex: 1;
+        min-width: 0;
+        padding: 34px 44px 60px;
+        max-width: 1060px;
+      }
+
+      .top-meta {
+        display: flex;
+        justify-content: flex-end;
+        gap: 18px;
+        font-size: 12px;
+        color: var(--ink-soft);
+        margin-bottom: 26px;
+      }
+      .top-meta .date {
+        color: var(--ink);
+        font-weight: 500;
+      }
+
+      .slogan {
+        text-align: center;
+        font-size: 33px;
+        font-weight: 500;
+        letter-spacing: 0.12em;
+        font-family: Georgia, 'Songti SC', 'Noto Serif SC', serif;
+        margin-bottom: 12px;
+      }
+      .slogan-sub {
+        text-align: center;
+        font-size: 13px;
+        color: var(--ink-soft);
+        letter-spacing: 0.5em;
+        text-indent: 0.5em;
+        margin-bottom: 34px;
+      }
+
+      /* ── 搜索 ── */
+      .search {
+        max-width: 560px;
+        margin: 0 auto 30px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 26px;
+        padding: 12px 20px;
+        box-shadow: var(--shadow);
+        transition:
+          border-color 0.18s,
+          box-shadow 0.18s;
+      }
+      .search:focus-within {
+        border-color: var(--accent);
+        box-shadow:
+          0 0 0 3px rgba(181, 80, 42, 0.1),
+          var(--shadow);
+      }
+      .search .mag {
+        color: var(--ink-faint);
+        font-size: 15px;
+      }
+      .search input {
+        flex: 1;
+        border: none;
+        outline: none;
+        background: transparent;
+        font-size: 14px;
+        color: var(--ink);
+        font-family: inherit;
+      }
+      .search input::placeholder {
+        color: var(--ink-faint);
+      }
+      .search .kbd {
+        font-size: 11px;
+        color: var(--ink-faint);
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        padding: 1px 7px;
+        background: #fbf8f1;
+      }
+
+      /* ── 四维筛选 ── */
+      .filters {
+        max-width: 720px;
+        margin: 0 auto 38px;
+        background: rgba(255, 253, 248, 0.65);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 16px 22px;
+      }
+      .frow {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        padding: 7px 0;
+      }
+      .frow + .frow {
+        border-top: 1px dashed #eee4d2;
+      }
+      .fdim {
+        flex: none;
+        width: 64px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12.5px;
+        color: var(--ink-soft);
+        font-weight: 600;
+        padding-top: 4px;
+      }
+      .fdim .ic {
+        font-size: 12px;
+        color: var(--ink-faint);
+      }
+      .fchips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        flex: 1;
+      }
+      .fchip {
+        padding: 3px 13px;
+        border-radius: 16px;
+        border: 1px solid #e0d4bf;
+        background: #fff;
+        font-size: 12.5px;
+        color: var(--ink);
+        cursor: pointer;
+        user-select: none;
+        -webkit-user-select: none;
+        transition: all 0.14s;
+        display: inline-flex;
+        align-items: baseline;
+        gap: 5px;
+      }
+      .fchip:hover {
+        border-color: var(--accent);
+      }
+      .fchip .n {
+        font-size: 10.5px;
+        color: var(--ink-faint);
+      }
+      .fchip.on {
+        background: linear-gradient(135deg, #bc5830, #a5471f);
+        border-color: transparent;
+        color: #fdf3e8;
+        box-shadow: 0 2px 8px rgba(160, 63, 29, 0.25);
+      }
+      .fchip.on .n {
+        color: rgba(253, 243, 232, 0.75);
+      }
+      .fchip.flow {
+        border-style: dashed;
+      }
+      .fchip.flow.on {
+        border-style: solid;
+      }
+
+      /* ── 结果区 ── */
+      .result-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-bottom: 16px;
+      }
+      .result-title {
+        font-size: 18px;
+        font-weight: 500;
+        font-family: Georgia, 'Songti SC', serif;
+      }
+      .result-title .count {
+        font-size: 13px;
+        color: var(--ink-faint);
+        margin-left: 10px;
+        font-family: -apple-system, 'PingFang SC', sans-serif;
+      }
+      .clear-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 12.5px;
+        color: var(--accent-ink);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+        text-decoration-color: #d8b6a3;
+        display: none;
+      }
+      .clear-btn.on {
+        display: inline;
+      }
+      .result-hint {
+        font-size: 12px;
+        color: var(--ink-faint);
+        margin: -8px 0 18px;
+      }
+
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+      @media (max-width: 1100px) {
+        .cards {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      @media (max-width: 800px) {
+        .cards {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .bcard {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        transition:
+          transform 0.18s,
+          box-shadow 0.18s;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+      }
+      .bcard:hover {
+        transform: translateY(-2px);
+        box-shadow:
+          0 4px 8px rgba(62, 48, 32, 0.06),
+          0 14px 32px rgba(62, 48, 32, 0.1);
+      }
+      .thumb {
+        height: 96px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 34px;
+        color: rgba(255, 250, 240, 0.92);
+        font-family: Georgia, serif;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+      }
+      .g1 {
+        background: linear-gradient(120deg, #8a6f4d, #b5502a);
+      }
+      .g2 {
+        background: linear-gradient(120deg, #4d5e6b, #7c93a2);
+      }
+      .g3 {
+        background: linear-gradient(120deg, #7d5a45, #c39a4b);
+      }
+      .g4 {
+        background: linear-gradient(120deg, #5d6b4d, #93a27c);
+      }
+      .g5 {
+        background: linear-gradient(120deg, #6b4d5e, #a27c93);
+      }
+      .g6 {
+        background: linear-gradient(120deg, #4d6b66, #7ca29b);
+      }
+      .bbody {
+        padding: 13px 15px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        flex: 1;
+      }
+      .btitle {
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.45;
+      }
+      .bmeta {
+        font-size: 11px;
+        color: var(--ink-faint);
+        font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+      }
+      .bnote {
+        font-size: 12.5px;
+        color: var(--accent-ink);
+        font-family: Georgia, 'Songti SC', serif;
+        border-left: 2.5px solid var(--gold);
+        padding-left: 9px;
+        line-height: 1.55;
+        background: linear-gradient(90deg, rgba(195, 154, 75, 0.08), transparent);
+        border-radius: 0 6px 6px 0;
+        padding-top: 3px;
+        padding-bottom: 3px;
+      }
+      .btags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin-top: auto;
+      }
+      .btag {
+        font-size: 10.5px;
+        color: var(--ink-soft);
+        background: #f4eee0;
+        border-radius: 10px;
+        padding: 1.5px 9px;
+      }
+      .btag.st {
+        background: var(--accent-soft);
+        color: var(--accent-ink);
+      }
+
+      .empty {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 56px 0;
+        color: var(--ink-faint);
+        font-size: 13.5px;
+      }
+    </style>
+  </head>
+  <body>
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark serif">✦</div>
+        <div class="brand-name">拾绪</div>
+      </div>
+      <nav class="nav">
+        <a class="nav-item active"><span class="ic">⌂</span>新标签页</a>
+        <a class="nav-item"><span class="ic">❖</span>全部收藏</a>
+        <a class="nav-item"><span class="ic">◈</span>视图</a>
+        <a class="nav-item" href="settings.html"><span class="ic">⚙</span>设置</a>
+        <a class="nav-item"><span class="ic">⊘</span>回收站</a>
+      </nav>
+      <div class="sidebar-quote">好的信息，<br />会在合适的时候，<br />再次出现。</div>
+    </aside>
+
+    <main class="main">
+      <div class="top-meta">
+        <span>北京 · 24°C</span>
+        <span class="date">9月10日 周四</span>
+      </div>
+
+      <h1 class="slogan">在信息的河流中，拾起有意义的线索</h1>
+      <p class="slogan-sub">收藏 · 整理 · 联结 · 再次遇见</p>
+
+      <div class="search">
+        <span class="mag">⌕</span>
+        <input type="text" placeholder="搜索标题、备注，或那句「为什么收藏」…" />
+        <span class="kbd">⌘K</span>
+      </div>
+
+      <div class="filters" id="filters"></div>
+
+      <div class="result-head">
+        <div class="result-title" id="resultTitle">
+          最近添加<span class="count" id="resultCount"></span>
+        </div>
+        <button class="clear-btn" id="clearBtn">清除全部筛选</button>
+      </div>
+      <p class="result-hint" id="resultHint">
+        默认只显示最近添加的 3 条，选择上方标签开始按维度筛选。
+      </p>
+
+      <div class="cards" id="cards"></div>
+    </main>
+
+    <script>
+      /* ── 演示数据：dimension → values[]，与设置页一致 ── */
+      const DIMS = [
+        {
+          key: 'topics',
+          name: '主题',
+          ic: '❖',
+          flow: false,
+          values: ['AI', 'Harness', '世界模型', '上下文工程'],
+        },
+        {
+          key: 'types',
+          name: '形态',
+          ic: '◉',
+          flow: false,
+          values: ['博客文章', 'GitHub 仓库', '论文', '文档'],
+        },
+        {
+          key: 'purpose',
+          name: '用途',
+          ic: '◎',
+          flow: false,
+          values: ['学习原理', '项目参考', '工具备用'],
+        },
+        { key: 'status', name: '状态', ic: '▸', flow: true, values: ['Inbox', 'Reading', 'Done'] },
+      ];
+
+      const BOOKMARKS = [
+        {
+          title: 'WorldDreamer: Interactive World Models',
+          domain: 'github.com',
+          g: 'g1',
+          letter: 'W',
+          topics: ['世界模型', 'AI'],
+          types: ['GitHub 仓库'],
+          purpose: ['项目参考'],
+          status: 'Reading',
+          note: '重点看 action → next state 的设计',
+          days: 1,
+        },
+        {
+          title: 'DeepSeek Harness 架构解析',
+          domain: 'deepseek.com',
+          g: 'g2',
+          letter: 'D',
+          topics: ['Harness', 'AI'],
+          types: ['博客文章'],
+          purpose: ['项目参考'],
+          status: 'Reading',
+          note: '关注插件生命周期与上下文管理',
+          days: 2,
+        },
+        {
+          title: 'Genie 3: General-Purpose World Model',
+          domain: 'deepmind.google',
+          g: 'g3',
+          letter: 'G',
+          topics: ['世界模型'],
+          types: ['论文'],
+          purpose: ['学习原理'],
+          status: 'Inbox',
+          note: '适合做环境预测参考',
+          days: 2,
+        },
+        {
+          title: 'Context Engineering Guide',
+          domain: 'anthropic.com',
+          g: 'g4',
+          letter: 'C',
+          topics: ['上下文工程', 'AI'],
+          types: ['文档'],
+          purpose: ['项目参考'],
+          status: 'Done',
+          note: 'Context 应该作为 harness 的核心状态',
+          days: 4,
+        },
+        {
+          title: 'GameNGen: Diffusion Plays DOOM',
+          domain: 'arxiv.org',
+          g: 'g5',
+          letter: 'G',
+          topics: ['世界模型'],
+          types: ['论文'],
+          purpose: ['学习原理'],
+          status: 'Inbox',
+          note: '扩散模型实时跑 DOOM，里程碑',
+          days: 5,
+        },
+        {
+          title: 'Mem0: AI Native Memory',
+          domain: 'github.com',
+          g: 'g6',
+          letter: 'M',
+          topics: ['AI'],
+          types: ['GitHub 仓库'],
+          purpose: ['工具备用'],
+          status: 'Inbox',
+          note: '为 AI 构建长期记忆的开源项目',
+          days: 6,
+        },
+        {
+          title: 'Sora: Creating Video from Text',
+          domain: 'openai.com',
+          g: 'g1',
+          letter: 'S',
+          topics: ['AI', '世界模型'],
+          types: ['博客文章'],
+          purpose: ['学习原理'],
+          status: 'Done',
+          note: '从文本生成视频的最新进展',
+          days: 7,
+        },
+        {
+          title: 'Cursor Rules for Better Agents',
+          domain: 'cursor.directory',
+          g: 'g2',
+          letter: 'C',
+          topics: ['Harness'],
+          types: ['博客文章'],
+          purpose: ['工具备用'],
+          status: 'Done',
+          note: '规则文件的组织方式可以借鉴',
+          days: 8,
+        },
+        {
+          title: 'LLM Agents Survey',
+          domain: 'arxiv.org',
+          g: 'g3',
+          letter: 'L',
+          topics: ['AI'],
+          types: ['论文'],
+          purpose: ['学习原理'],
+          status: 'Reading',
+          note: 'Agent 全景综述，先读架构一章',
+          days: 10,
+        },
+        {
+          title: 'Claude 3.7 System Card',
+          domain: 'anthropic.com',
+          g: 'g4',
+          letter: 'C',
+          topics: ['AI'],
+          types: ['文档'],
+          purpose: ['项目参考'],
+          status: 'Done',
+          note: '安全评估章节值得细看',
+          days: 12,
+        },
+        {
+          title: 'How I Use AI in My Daily Work',
+          domain: 'blog.example.com',
+          g: 'g5',
+          letter: 'H',
+          topics: ['AI'],
+          types: ['博客文章'],
+          purpose: ['学习原理'],
+          status: 'Done',
+          note: '日常 workflow 参考',
+          days: 14,
+        },
+        {
+          title: 'Agent Computer Interface',
+          domain: 'anthropic.com',
+          g: 'g6',
+          letter: 'A',
+          topics: ['Harness', '上下文工程'],
+          types: ['论文'],
+          purpose: ['项目参考'],
+          status: 'Inbox',
+          note: '面向智能体的计算机接口范式',
+          days: 16,
+        },
+      ];
+
+      /* ── 筛选状态：维度内 OR，跨维度 AND ── */
+      const selected = {
+        topics: new Set(),
+        types: new Set(),
+        purpose: new Set(),
+        status: new Set(),
+      };
+
+      function matchDim(b, key, sel) {
+        if (!sel.size) return true;
+        if (key === 'status') return sel.has(b.status);
+        return b[key].some((v) => sel.has(v));
+      }
+      function matchAll(b, exceptKey) {
+        return DIMS.every((d) => d.key === exceptKey || matchDim(b, d.key, selected[d.key]));
+      }
+      const hasFilter = () => DIMS.some((d) => selected[d.key].size > 0);
+
+      /* ── 渲染筛选行（计数按其他维度条件计算，已选永不消失） ── */
+      const filtersEl = document.getElementById('filters');
+
+      function renderFilters() {
+        filtersEl.innerHTML = '';
+        DIMS.forEach((d) => {
+          const row = document.createElement('div');
+          row.className = 'frow';
+          row.innerHTML = `<div class="fdim"><span class="ic">${d.ic}</span>${d.name}</div>`;
+          const chips = document.createElement('div');
+          chips.className = 'fchips';
+          d.values.forEach((v) => {
+            const n = BOOKMARKS.filter(
+              (b) =>
+                (d.key === 'status' ? b.status === v : b[d.key].includes(v)) && matchAll(b, d.key),
+            ).length;
+            const chip = document.createElement('span');
+            chip.className =
+              'fchip' + (d.flow ? ' flow' : '') + (selected[d.key].has(v) ? ' on' : '');
+            chip.innerHTML = `${v}<span class="n">${n}</span>`;
+            chip.addEventListener('click', () => {
+              selected[d.key].has(v) ? selected[d.key].delete(v) : selected[d.key].add(v);
+              render();
+            });
+            chips.appendChild(chip);
+          });
+          row.appendChild(chips);
+          filtersEl.appendChild(row);
+        });
+      }
+
+      /* ── 渲染结果：无筛选 = 最近 3 条；有筛选 = 全部命中 ── */
+      const cardsEl = document.getElementById('cards');
+      const resultTitle = document.getElementById('resultTitle');
+      const resultCount = document.getElementById('resultCount');
+      const resultHint = document.getElementById('resultHint');
+      const clearBtn = document.getElementById('clearBtn');
+
+      function renderCards() {
+        const filtering = hasFilter();
+        const hits = BOOKMARKS.filter((b) => matchAll(b)).sort((a, b) => a.days - b.days);
+        const shown = filtering ? hits : [...BOOKMARKS].sort((a, b) => a.days - b.days).slice(0, 3);
+
+        resultTitle.firstChild.textContent = filtering ? '筛选结果' : '最近添加';
+        resultCount.textContent = filtering ? `${hits.length} 条命中` : '';
+        resultHint.style.display = filtering ? 'none' : '';
+        clearBtn.classList.toggle('on', filtering);
+
+        cardsEl.innerHTML = '';
+        if (!shown.length) {
+          cardsEl.innerHTML =
+            '<div class="empty">没有同时满足这些条件的收藏，试试减少一个维度。</div>';
+          return;
+        }
+        shown.forEach((b) => {
+          const card = document.createElement('div');
+          card.className = 'bcard';
+          card.innerHTML = `
+        <div class="thumb ${b.g} serif">${b.letter}</div>
+        <div class="bbody">
+          <div class="btitle">${b.title}</div>
+          <div class="bmeta">${b.domain} · ${b.days} 天前</div>
+          <div class="bnote">${b.note}</div>
+          <div class="btags">
+            ${b.topics.map((t) => `<span class="btag">${t}</span>`).join('')}
+            ${b.types.map((t) => `<span class="btag">${t}</span>`).join('')}
+            <span class="btag st">${b.status}</span>
+          </div>
+        </div>`;
+          cardsEl.appendChild(card);
+        });
+      }
+
+      clearBtn.addEventListener('click', () => {
+        DIMS.forEach((d) => selected[d.key].clear());
+        render();
+      });
+
+      function render() {
+        renderFilters();
+        renderCards();
+      }
+      render();
+    </script>
+  </body>
+</html>
