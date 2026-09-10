@@ -2,6 +2,7 @@ node_modules
 .wxt
 .output
 dist
+output
 build
 data
 pnpm-lock.yaml

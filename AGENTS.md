@@ -49,7 +49,7 @@
 ### 静态检查底座（初始化脚手架时必须配齐）
 
 - tsconfig 基线：`strict`、`noUncheckedIndexedAccess`、`exactOptionalPropertyTypes`、`noImplicitReturns`、`noFallthroughCasesInSwitch`、`noImplicitOverride`、`useUnknownInCatchVariables`、`noUnusedLocals`、`noUnusedParameters`、`forceConsistentCasingInFileNames`。不为通过编译而放松。
-- ESLint Flat Config（`eslint.config.mjs`，复制自 skill assets，按项目调 ignores，如 WXT 的 `.wxt/**`、`.output/**`）：`recommendedTypeChecked` + `projectService: true`；强制 `no-explicit-any`、全套 `no-unsafe-*`、`no-unsafe-type-assertion`、`no-non-null-assertion`、`no-floating-promises`（ignoreVoid: false）、`no-misused-promises`、`switch-exhaustiveness-check`、`consistent-type-imports`；`reportUnusedDisableDirectives: 'error'`。
+- ESLint Flat Config（`eslint.config.mjs`，复制自 skill assets，按项目调 ignores，如 WXT 的 `.wxt/**`、构建产物 `dist/**`）：`recommendedTypeChecked` + `projectService: true`；强制 `no-explicit-any`、全套 `no-unsafe-*`、`no-unsafe-type-assertion`、`no-non-null-assertion`、`no-floating-promises`（ignoreVoid: false）、`no-misused-promises`、`switch-exhaustiveness-check`、`consistent-type-imports`；`reportUnusedDisableDirectives: 'error'`。
 - 三个包（extension / server / shared）统一提供 `check` = `typecheck`（tsc --noEmit）+ `lint`（eslint . --max-warnings 0）+ `format:check`（prettier . --check），**提交前必须通过**。
 - 检查失败优先改代码。禁止用 any / `as unknown as X` / 非空断言 `!` / eslint-disable / 关 strict 掩盖问题；确需豁免（典型：第三方无类型）最小范围 + 注明原因，能转 `unknown` 立即转。
 

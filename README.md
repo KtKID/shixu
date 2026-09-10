@@ -24,12 +24,12 @@ cd apps/server
 cp .env.example .env       # 填 JWT_SECRET（openssl rand -hex 32）
 pnpm db:push               # 建表
 pnpm cli create-user you@example.com your-password   # 建号
-pnpm dev                   # http://127.0.0.1:8787
+pnpm dev                   # http://127.0.0.1:60024
 
 # 扩展（Chrome）
-pnpm dev:ext               # 开发模式，自动打开浏览器加载 .output/chrome-mv3
-pnpm build:ext             # 产物 .output/chrome-mv3，chrome://extensions 开发者模式加载
-pnpm build:ext:firefox     # 产物 .output/firefox-mv2
+pnpm dev:ext               # 开发模式，自动打开浏览器加载 dist/chrome-mv3
+pnpm build:ext             # 产物 dist/chrome-mv3，chrome://extensions 开发者模式加载
+pnpm build:ext:firefox     # 产物 dist/firefox-mv2
 ```
 
 ## 当前切片状态
