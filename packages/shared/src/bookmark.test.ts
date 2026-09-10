@@ -16,7 +16,7 @@ const base = {
 
 const classification = (status: string) => ({
   topics: [],
-  type: null,
+  types: [],
   purposes: [],
   status,
 });
@@ -51,5 +51,41 @@ describe('BookmarkSchema · Status 为用户自定义单选取值', () => {
     });
     expect(DEFAULT_STATUS).toBe('inbox');
     expect(bookmark.classification.status).toBe(DEFAULT_STATUS);
+  });
+});
+
+describe('ClassificationSchema · 形态（Type）为多选取值（capture spec feat04 契约）', () => {
+  it('接受多个形态（如 论文 + 文档）', () => {
+    const r = BookmarkSchema.safeParse({
+      ...base,
+      classification: { ...classification('inbox'), types: ['论文', '文档'] },
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('拒绝空串成员与超过 10 个形态', () => {
+    expect(
+      BookmarkSchema.safeParse({
+        ...base,
+        classification: { ...classification('inbox'), types: [''] },
+      }).success,
+    ).toBe(false);
+    expect(
+      BookmarkSchema.safeParse({
+        ...base,
+        classification: {
+          ...classification('inbox'),
+          types: Array.from({ length: 11 }, (_, i) => `t${i}`),
+        },
+      }).success,
+    ).toBe(false);
+  });
+
+  it('createBookmark 新书签默认形态为空数组', () => {
+    const bookmark = createBookmark(crypto.randomUUID(), {
+      url: 'https://example.com/new2',
+      title: 't',
+    });
+    expect(bookmark.classification.types).toEqual([]);
   });
 });

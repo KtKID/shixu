@@ -10,7 +10,7 @@ import {
 
 /** 端到端冒烟：登录 → 推送 1 条书签 → 增量拉取验证。前置：已用 CLI 建号并启动 server。 */
 
-const baseUrl = process.env['SMOKE_BASE_URL'] ?? 'http://127.0.0.1:8787';
+const baseUrl = process.env['SMOKE_BASE_URL'] ?? 'http://127.0.0.1:60024';
 const email = process.env['SMOKE_EMAIL'] ?? 'smoke@example.com';
 const password = process.env['SMOKE_PASSWORD'] ?? 'smoke-password-1';
 

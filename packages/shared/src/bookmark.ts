@@ -2,10 +2,10 @@ import { z } from 'zod';
 import { BookmarkStatusSchema, DEFAULT_STATUS } from './taxonomy';
 import { normalizeUrl } from './url';
 
-/** Classification：四维分类属性。收藏时允许全空（默认 Inbox，后补）。 */
+/** Classification：四维分类属性。收藏时允许全空（默认 Inbox，后补）。形态（Type）为多选（capture spec feat04）。 */
 export const ClassificationSchema = z.object({
   topics: z.array(z.string().min(1)).max(20),
-  type: z.string().min(1).nullable(),
+  types: z.array(z.string().min(1)).max(10),
   purposes: z.array(z.string().min(1)).max(10),
   status: BookmarkStatusSchema,
 });
@@ -46,7 +46,7 @@ export function createBookmark(id: string, input: NewBookmarkInput, now = new Da
     title: input.title,
     summary: null,
     note: input.note ?? null,
-    classification: { topics: [], type: null, purposes: [], status: DEFAULT_STATUS },
+    classification: { topics: [], types: [], purposes: [], status: DEFAULT_STATUS },
     createdAt: ts,
     updatedAt: ts,
     deletedAt: null,

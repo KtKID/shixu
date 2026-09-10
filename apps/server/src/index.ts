@@ -30,7 +30,7 @@ app.onError((err, c) => {
   return c.json({ error: 'INTERNAL' }, 500);
 });
 
-const port = Number(process.env['PORT'] ?? 8787);
+const port = Number(process.env['PORT'] ?? 60024);
 
 serve({ fetch: app.fetch, port }, (info) => {
   console.log(`[x-threadpick server] http://127.0.0.1:${info.port}`);
