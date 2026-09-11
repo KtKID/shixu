@@ -45,3 +45,15 @@ describe('SettingsSchema（本地设置存储）', () => {
     expect(SettingsSchema.safeParse({ ...DEFAULT_SETTINGS, session }).success).toBe(true);
   });
 });
+
+describe('autoSync 按账号开关（feat11）', () => {
+  it('默认为空表（场景4：默认关闭）', () => {
+    expect(DEFAULT_SETTINGS.autoSync).toEqual({});
+  });
+
+  it('接受 账号key→布尔 的记录并随 Settings 持久化', () => {
+    const key = 'http://127.0.0.1:8787#you@example.com';
+    const parsed = SettingsSchema.parse({ ...DEFAULT_SETTINGS, autoSync: { [key]: true } });
+    expect(parsed.autoSync[key]).toBe(true);
+  });
+});

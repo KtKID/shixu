@@ -10,10 +10,10 @@
 
 - Monorepo 已初始化（pnpm workspaces），尚未 git 化。
 - `packages/shared` — zod schema 唯一真源（Bookmark / View / auth / sync / normalizeUrl）。
-- `apps/server` — Hono + Drizzle + better-sqlite3；auth（JWT 30 天）+ sync（增量拉推、LWW）+ CLI（`pnpm cli create-user|set-password`）+ 冒烟脚本（`pnpm smoke`）。better-sqlite3 驱动是**同步 API**，查询不加 await。
-- `apps/extension` — WXT 0.21 + React + Dexie；已完成切片：popup 入口 + options 导入器（getTree 展平 → 搜索勾选 → 规范化去重 → 入库 Inbox）。React 集成包名是 `@wxt-dev/module-react`（非 @wxt-dev/react）。构建：`pnpm build:ext` / `build:ext:firefox`。
+- `apps/server` — Hono + Drizzle + better-sqlite3；auth（JWT 30 天 + `/auth/register` 自助注册）+ sync（增量拉推、LWW）+ CLI（`pnpm cli create-user|set-password`）+ 冒烟脚本（`pnpm smoke` / `pnpm smoke:register`）。better-sqlite3 驱动是**同步 API**，查询不加 await。注意：`pnpm start`/`pnpm dev` 不自动加载 `.env`，需 `tsx --env-file=.env` 或先 export JWT_SECRET。
+- `apps/extension` — WXT 0.21 + React + Dexie；已完成切片：popup 入口 + options 导入器（getTree 展平 → 搜索勾选 → 规范化去重 → 入库 Inbox）、设置页（服务器连接/登录/注册/分类维度）、同步客户端（`src/db/sync.ts`：手动「同步收藏」+ 结果计数 + 按账号自动同步开关，写操作经 `db/autosync.ts` 防抖触发）。React 集成包名是 `@wxt-dev/module-react`（非 @wxt-dev/react）。构建：`pnpm build:ext` / `build:ext:firefox`。
 - 环境要求：Node ≥20；`pnpm check` 全绿是提交底线。
-- 待做：扩展端登录 + 同步客户端 → 批量导入 → 四维筛选 → View → Capture 弹窗。
+- 待做：批量导入 → 四维筛选 → View → Capture 弹窗。
 
 ## 必读文档
 
@@ -35,7 +35,7 @@
 - **双浏览器**：Chrome（MV3）+ Firefox。用 WXT 框架一套代码两份构建（`wxt build --browser firefox`），它自动处理 background 差异（Firefox 是 event page 而非 service worker）。API 调用统一走 `webextension-polyfill` 风格的 `browser.*`。Side Panel 需按浏览器分叉：Chrome 用 `sidePanel` API，Firefox 用 `sidebar_action`。
 - `chrome.bookmarks` / `browser.bookmarks` 是树形单父节点结构、无标签字段，且两个浏览器都有该 API → 原生书签**只作导入来源**（getTree + search）；多维属性与视图存扩展本地库并同步到后端。
 - **前后端协议用 zod 定义**，schema 放 monorepo 共享包（如 `packages/shared`），前后端共用同一份类型，禁止两端各写一份。同步对象：bookmark（url / title / summary / note / 四维属性 / 时间戳）与 view。
-- 认证：账号密码（email + password），JWT access/refresh token，token 存 `browser.storage.local`。**v1 只有账号密码**：不做 OAuth / 注册页 / 找回密码 / 邮箱验证；账号由 server 包 CLI 创建（`cli create-user` / `cli set-password`）；密码 argon2/bcrypt 哈希、JWT 密钥走环境变量、部署 HTTPS；access token 有效期放宽到 30 天，不做 refresh 轮换。
+- 认证：账号密码（email + password），JWT access/refresh token，token 存 `browser.storage.local`。只有账号密码：不做 OAuth / 找回密码 / 邮箱验证；账号可由扩展设置页「创建账号」注册（密码需英文+数字且 >5 位，2026-09-11 起开放，见 settings spec feat09），也可由 server 包 CLI 创建（`cli create-user` / `cli set-password`）；密码 argon2/bcrypt 哈希、JWT 密钥走环境变量、部署 HTTPS；access token 有效期放宽到 30 天，不做 refresh 轮换。
 - **Backend 是普通 HTTP JSON API**（REST，Hono + Drizzle + SQLite），不是 CLI / GraphQL / gRPC；CLI 只作 server 包内部管理命令。**架构是 offline-first**：扩展本地 IndexedDB 是主库、日常读写全在本地，后端只是同步/备份层，挂了不影响使用。
 - 同步对象带 `updatedAt` + 软删除 tombstone，客户端增量拉取（`?since=`）+ 推送本地变更，冲突 last-write-wins。
 - URL 判重前必须规范化（剥 `utm_*` 等追踪参数、统一大小写域名）。

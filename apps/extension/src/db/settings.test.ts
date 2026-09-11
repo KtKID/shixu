@@ -7,6 +7,8 @@ import {
   recordServerLogin,
   removeServerRecord,
   setActiveServer,
+  setAutoSync,
+  accountKey,
   updateServerRecord,
 } from './settings';
 
@@ -147,5 +149,28 @@ describe('clearSession', () => {
     expect(next.session).toBeNull();
     expect(next.activeServerUrl).toBe(S1);
     expect(next.history).toHaveLength(1);
+  });
+});
+
+describe('自动同步开关按账号记忆（feat11）', () => {
+  it('accountKey 由 服务器地址#邮箱 组成', () => {
+    expect(accountKey(makeSession(S1))).toBe(`${S1}#a@x.com`);
+  });
+
+  it('场景3/4：A 账号开启不影响 B 账号；未设置默认 false', async () => {
+    const s1 = await recordServerLogin(S1, makeSession(S1));
+    await setAutoSync(accountKey(s1.session ?? makeSession(S1)), true);
+    const stored = await loadSettings();
+    expect(stored.autoSync[`${S1}#a@x.com`]).toBe(true);
+    expect(stored.autoSync[`${S2}#a@x.com`]).toBeUndefined();
+    expect(stored.autoSync[`${S1}#b@x.com`]).toBeUndefined();
+  });
+
+  it('取消勾选写回 false', async () => {
+    const session = makeSession(S1);
+    await recordServerLogin(S1, session);
+    await setAutoSync(accountKey(session), true);
+    const next = await setAutoSync(accountKey(session), false);
+    expect(next.autoSync[accountKey(session)]).toBe(false);
   });
 });

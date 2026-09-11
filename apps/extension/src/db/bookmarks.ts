@@ -7,6 +7,7 @@ import {
   type Classification,
 } from '@x-threadpick/shared';
 import type { TaxonomyRow } from './taxonomy';
+import { notifyLocalChange } from './autosync';
 
 /** 本地 IndexedDB 是主库（offline-first）；读取时经 shared schema 校验（边界）。 */
 
@@ -55,6 +56,7 @@ export async function importBookmarks(
     await db.bookmarks.add(bookmark);
     outcome.imported++;
   }
+  if (outcome.imported > 0) notifyLocalChange();
   return outcome;
 }
 
@@ -115,6 +117,7 @@ export async function captureBookmark(
       classification: input.classification,
     });
     await db.bookmarks.add(bookmark);
+    notifyLocalChange();
     return { status: 'created', bookmark };
   }
   const updated = BookmarkSchema.parse({
@@ -126,5 +129,6 @@ export async function captureBookmark(
     deletedAt: null,
   });
   await db.bookmarks.put(updated);
+  notifyLocalChange();
   return { status: 'updated', bookmark: updated };
 }

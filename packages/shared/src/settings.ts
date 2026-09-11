@@ -25,6 +25,8 @@ export const SettingsSchema = z.object({
   history: z.array(ServerRecordSchema).max(20),
   session: SessionSchema.nullable(),
   lastSyncAt: z.iso.datetime().nullable(),
+  /** 自动同步开关，按账号记忆：key = `${serverUrl}#${email}`（feat11 场景3/4）。缺省补 {}（兼容旧记录）。 */
+  autoSync: z.record(z.string(), z.boolean()).default({}),
 });
 export type Settings = z.infer<typeof SettingsSchema>;
 
@@ -33,4 +35,5 @@ export const DEFAULT_SETTINGS: Settings = {
   history: [],
   session: null,
   lastSyncAt: null,
+  autoSync: {},
 };

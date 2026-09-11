@@ -7,6 +7,7 @@ import {
   type Taxonomy,
 } from '@x-threadpick/shared';
 import { db } from './bookmarks';
+import { notifyLocalChange } from './autosync';
 
 /**
  * 本地分类取值管理：Dexie 单行（id='local'）。
@@ -37,6 +38,11 @@ async function putTaxonomy(taxonomy: Taxonomy): Promise<void> {
   await db.taxonomies.put({ id: ROW_ID, taxonomy: TaxonomySchema.parse(taxonomy) });
 }
 
+/** 同步应用远端 taxonomy（feat10 场景5）：整包替换本机（调用方已做 LWW 比较）。 */
+export async function saveTaxonomy(taxonomy: Taxonomy): Promise<void> {
+  await putTaxonomy(taxonomy);
+}
+
 export type AddTaxonomyValueResult =
   { status: 'added' } | { status: 'rejected'; reason: 'empty' | 'duplicate' | 'too_long' };
 
@@ -52,6 +58,7 @@ export async function addTaxonomyValue(
   taxonomy[dimension] = [...taxonomy[dimension], value];
   taxonomy.updatedAt = new Date().toISOString();
   await putTaxonomy(taxonomy);
+  notifyLocalChange();
   return { status: 'added' };
 }
 
@@ -70,5 +77,6 @@ export async function removeTaxonomyValue(
   taxonomy[dimension] = taxonomy[dimension].filter((v) => v !== value);
   taxonomy.updatedAt = new Date().toISOString();
   await putTaxonomy(taxonomy);
+  notifyLocalChange();
   return { status: 'removed' };
 }

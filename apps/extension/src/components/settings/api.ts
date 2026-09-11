@@ -2,7 +2,15 @@ import {
   HealthResponseSchema,
   LoginRequestSchema,
   LoginResponseSchema,
+  RegisterRequestSchema,
+  SyncPullResponseSchema,
+  SyncPushRequestSchema,
+  SyncPushResponseSchema,
   type LoginRequest,
+  type RegisterRequest,
+  type SyncPullResponse,
+  type SyncPushRequest,
+  type SyncPushResponse,
 } from '@x-threadpick/shared';
 
 /**
@@ -119,6 +127,88 @@ export async function login(baseUrl: string, request: LoginRequest): Promise<Log
     const parsed = LoginResponseSchema.safeParse(raw);
     if (!parsed.success) return { status: 'server_error' };
     return { status: 'ok', token: parsed.data.token, expiresAt: parsed.data.expiresAt };
+  } catch {
+    return { status: 'unreachable' };
+  }
+}
+
+export type RegisterOutcome =
+  | { status: 'ok'; token: string; expiresAt: string }
+  | { status: 'email_taken' }
+  | { status: 'unreachable' }
+  | { status: 'server_error' };
+
+/** POST /auth/register：409 → email_taken；网络异常 → unreachable；协议不符 → server_error。 */
+export async function register(
+  baseUrl: string,
+  request: RegisterRequest,
+): Promise<RegisterOutcome> {
+  const body = JSON.stringify(RegisterRequestSchema.parse(request));
+  try {
+    const response = await fetchWithTimeout(`${baseUrl}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+    });
+    if (response.status === 409) return { status: 'email_taken' };
+    if (!response.ok) return { status: 'server_error' };
+    const raw: unknown = await response.json();
+    const parsed = LoginResponseSchema.safeParse(raw);
+    if (!parsed.success) return { status: 'server_error' };
+    return { status: 'ok', token: parsed.data.token, expiresAt: parsed.data.expiresAt };
+  } catch {
+    return { status: 'unreachable' };
+  }
+}
+
+export type SyncOutcome<T> =
+  | { status: 'ok'; data: T }
+  | { status: 'unauthorized' }
+  | { status: 'unreachable' }
+  | { status: 'server_error' };
+
+/** GET /sync?since=：401 → unauthorized；网络异常 → unreachable；协议不符 → server_error。 */
+export async function syncPull(
+  baseUrl: string,
+  token: string,
+  since: string | null,
+): Promise<SyncOutcome<SyncPullResponse>> {
+  const url =
+    since === null ? `${baseUrl}/sync` : `${baseUrl}/sync?since=${encodeURIComponent(since)}`;
+  try {
+    const response = await fetchWithTimeout(url, {
+      method: 'GET',
+      headers: { authorization: `Bearer ${token}` },
+    });
+    if (response.status === 401) return { status: 'unauthorized' };
+    if (!response.ok) return { status: 'server_error' };
+    const raw: unknown = await response.json();
+    const parsed = SyncPullResponseSchema.safeParse(raw);
+    if (!parsed.success) return { status: 'server_error' };
+    return { status: 'ok', data: parsed.data };
+  } catch {
+    return { status: 'unreachable' };
+  }
+}
+
+/** POST /sync：推送本地变更批次；状态映射同 syncPull。 */
+export async function syncPush(
+  baseUrl: string,
+  token: string,
+  body: SyncPushRequest,
+): Promise<SyncOutcome<SyncPushResponse>> {
+  try {
+    const response = await fetchWithTimeout(`${baseUrl}/sync`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', authorization: `Bearer ${token}` },
+      body: JSON.stringify(SyncPushRequestSchema.parse(body)),
+    });
+    if (response.status === 401) return { status: 'unauthorized' };
+    if (!response.ok) return { status: 'server_error' };
+    const raw: unknown = await response.json();
+    const parsed = SyncPushResponseSchema.safeParse(raw);
+    if (!parsed.success) return { status: 'server_error' };
+    return { status: 'ok', data: parsed.data };
   } catch {
     return { status: 'unreachable' };
   }

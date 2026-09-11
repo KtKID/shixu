@@ -103,3 +103,19 @@ export async function clearSession(): Promise<Settings> {
   await saveSettings(next);
   return next;
 }
+
+/** 自动同步开关的账号键（feat11 场景3：开关跟随账号）。 */
+export function accountKey(session: Session): string {
+  return `${session.serverUrl}#${session.email}`;
+}
+
+/** 设置某账号的自动同步开关（feat11 场景1/2）。 */
+export async function setAutoSync(key: string, enabled: boolean): Promise<Settings> {
+  const current = await loadSettings();
+  const next: Settings = SettingsSchema.parse({
+    ...current,
+    autoSync: { ...current.autoSync, [key]: enabled },
+  });
+  await saveSettings(next);
+  return next;
+}
