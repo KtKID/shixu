@@ -86,6 +86,42 @@ describe('地址指定初始条目（feat01 场景2 的落点承载）', () => {
   });
 });
 
+describe('导航切换同步地址 hash（feat02 场景5）', () => {
+  beforeEach(() => {
+    window.location.hash = '';
+  });
+
+  it('点击条目后地址 hash 跟随（nav_click_updates_hash）', () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '分类维度' }));
+    expect(window.location.hash).toBe('#dimensions');
+  });
+
+  it('hash 变化（手动改地址/前进后退）时选中条目跟随（hashchange_switches_section）', async () => {
+    render(<App />);
+
+    window.location.hash = '#library';
+    fireEvent(window, new HashChangeEvent('hashchange'));
+
+    const items = screen.getByRole('navigation', { name: '主导航' }).querySelectorAll('.nav-item');
+    expect(items[1]?.classList.contains('active')).toBe(true);
+    expect(await screen.findByRole('heading', { name: '全部收藏' })).toBeTruthy();
+  });
+
+  it('切换条目后重开页面仍落在该条目（refresh_keeps_section）', async () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: '全部收藏' }));
+
+    cleanup();
+    render(<App initialSection={parseSectionHash(window.location.hash)} />);
+
+    const items = screen.getByRole('navigation', { name: '主导航' }).querySelectorAll('.nav-item');
+    expect(items[1]?.classList.contains('active')).toBe(true);
+    expect(await screen.findByRole('heading', { name: '全部收藏' })).toBeTruthy();
+  });
+});
+
 describe('导航分区内容沿用《设置页面》spec（feat02 场景1）', () => {
   it('「网络连接」内是服务器地址/端口、测试连接、历史服务器与账号登录', async () => {
     render(<App initialSection="network" />);

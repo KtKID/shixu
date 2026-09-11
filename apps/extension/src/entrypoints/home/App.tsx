@@ -12,6 +12,7 @@ import ImportSection from './sections/ImportSection';
  * 插件主页外壳：左侧导航（条目即功能分区）+ 右侧内容区。
  * 导航固定五项、无预留项（feat02 场景1/3，feat07 增补「全部收藏」）；内容区水平居中且有最大宽度（feat02 场景4，见 index.css）。
  * 地址 hash 指定初始条目（#network 等），供 popup「设置」按钮直达（feat01 场景2）。
+ * 切换条目时 hash 跟随回写并产生浏览历史，hashchange（手动改地址/前进后退）反向同步选中条目（feat02 场景5）。
  * 「网络连接」「分类维度」内的行为沿用《设置页面》spec，卡片自原 settings entrypoint 迁入公共目录。
  */
 
@@ -38,6 +39,17 @@ export default function App({ initialSection = 'recent' }: { initialSection?: Se
   const [settings, setSettings] = useState<Settings | null>(null);
   const [host, setHost] = useState('');
   const [port, setPort] = useState('');
+
+  useEffect(() => {
+    const onHashChange = () => setSection(parseSectionHash(window.location.hash));
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
+  const navigate = (key: SectionKey) => {
+    setSection(key);
+    window.location.hash = key;
+  };
 
   useEffect(() => {
     loadSettings()
@@ -70,7 +82,7 @@ export default function App({ initialSection = 'recent' }: { initialSection?: Se
                 key={item.key}
                 className={`nav-item${active ? ' active' : ''}`}
                 aria-current={active ? 'page' : undefined}
-                onClick={() => setSection(item.key)}
+                onClick={() => navigate(item.key)}
               >
                 <span className="ic" aria-hidden="true">
                   {item.icon}
@@ -93,12 +105,12 @@ export default function App({ initialSection = 'recent' }: { initialSection?: Se
         <div className="main-inner">
           {section === 'recent' && (
             <section className="section" aria-label="最近新增">
-              <RecentSection onNavigateImport={() => setSection('import')} />
+              <RecentSection onNavigateImport={() => navigate('import')} />
             </section>
           )}
           {section === 'library' && (
             <section className="section" aria-label="全部收藏">
-              <RecentSection variant="library" onNavigateImport={() => setSection('import')} />
+              <RecentSection variant="library" onNavigateImport={() => navigate('import')} />
             </section>
           )}
           {section === 'network' && (
