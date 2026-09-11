@@ -236,17 +236,19 @@ body {
   cursor: not-allowed;
 }
 
-/* ── 四维 ── */
+/* ── 四维（feat08：卡片三段 = 顶部标题 / 中部取值区 / 底部修改区） ── */
 .dims {
   margin: 0 14px 4px;
 }
 
+/* 左右与底部 padding 交给各段，使底部修改区贴齐卡片左右边缘 */
 .dim {
-  padding: 7px 12px 9px;
+  padding: 7px 0 0;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   margin-bottom: 6px;
+  overflow: hidden;
 }
 
 .dim-head {
@@ -254,6 +256,7 @@ body {
   align-items: baseline;
   justify-content: space-between;
   margin-bottom: 6px;
+  padding: 0 12px;
 }
 
 .dim-name {
@@ -275,10 +278,12 @@ body {
   letter-spacing: 0.05em;
 }
 
+/* 中段取值区：随取值数量自动伸缩高度 */
 .chips {
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
+  padding: 0 12px 8px;
 }
 
 .chips-placeholder {
@@ -286,16 +291,14 @@ body {
   color: var(--ink-faint);
 }
 
+/* chip 为 span 胶囊容器（内含点选与删除两个按钮，避免 button 嵌套） */
 .chip {
-  padding: 2px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   border-radius: 16px;
   border: 1px solid #e0d4bf;
   background: #fff;
-  font-size: 12px;
-  color: var(--ink);
-  cursor: pointer;
-  user-select: none;
-  -webkit-user-select: none;
   transition: all 0.14s;
 }
 
@@ -318,17 +321,117 @@ body {
   border-style: solid;
 }
 
+.chip-btn {
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--ink);
+  padding: 2px 2px 2px 10px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: color 0.14s;
+}
+
+.chip-btn:disabled {
+  cursor: not-allowed;
+}
+
+.chip.on .chip-btn {
+  color: #fdf3e8;
+}
+
+/* 取值删除钮（与设置页同款小圆钮，密度按面板缩小） */
+.chip .x {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: none;
+  background: #f0e8d9;
+  color: var(--ink-faint);
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 4px;
+  padding: 0;
+  transition: all 0.14s;
+}
+
+.chip .x:hover:not(:disabled) {
+  background: var(--accent);
+  color: #fdf3e8;
+}
+
+.chip .x:disabled {
+  cursor: not-allowed;
+}
+
 /* 状态取值存储为小写，展示层首字母大写（与设置页一致） */
 .status-chip {
   text-transform: capitalize;
 }
 
-.dims-hint {
-  text-align: center;
-  font-size: 10.5px;
+/* 底部修改区：输入框 + 加号，横向贴齐卡片左右边缘 */
+.chip-add {
+  display: flex;
+  align-items: stretch;
+  border-top: 1px solid var(--line);
+  background: #fbf7ee;
+}
+
+.chip-add input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--ink);
+  padding: 7px 12px;
+}
+
+.chip-add input::placeholder {
   color: var(--ink-faint);
-  padding: 0 0 6px;
-  letter-spacing: 0.03em;
+}
+
+.chip-add input:disabled {
+  cursor: not-allowed;
+}
+
+.chip-add button {
+  flex: none;
+  width: 34px;
+  border: none;
+  border-left: 1px solid var(--line);
+  background: transparent;
+  color: var(--accent-ink);
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.14s;
+}
+
+.chip-add button:hover:not(:disabled) {
+  background: var(--accent);
+  color: #fdf3e8;
+}
+
+.chip-add button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.dim-error {
+  padding: 5px 12px 7px;
+  font-size: 10.5px;
+  color: var(--accent-ink);
 }
 
 /* ── 底部动作 ── */

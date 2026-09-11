@@ -5,6 +5,7 @@ import {
   createBookmark,
   createDefaultTaxonomy,
   DEFAULT_STATUS,
+  TAXONOMY_VALUE_MAX,
   type Bookmark,
   type CaptureTarget,
   type Taxonomy,
@@ -76,6 +77,20 @@ function mockActiveTab(tab: Partial<Browser.tabs.Tab>): void {
   ]);
 }
 
+/** 写入本地 taxonomy 单行，模拟「设置」页维护过的取值集合。 */
+async function seedTaxonomy(overrides: Partial<Omit<Taxonomy, 'updatedAt'>>) {
+  const taxonomy = { ...createDefaultTaxonomy(), ...overrides };
+  await db.taxonomies.put({ id: 'local', taxonomy });
+}
+
+/** 渲染可收藏面板并等四维取值就绪（默认集合首个主题取值为「世界模型」）。 */
+async function renderPanelWithDims() {
+  await stashTarget(WEB_TARGET);
+  mockNoActiveTab();
+  render(<App />);
+  await screen.findByRole('button', { name: '世界模型' });
+}
+
 beforeEach(async () => {
   cleanup();
   vi.restoreAllMocks();
@@ -95,8 +110,10 @@ describe('面板骨架（feat01 场景1 / feat02 场景1）', () => {
 
     expect(await screen.findByText('拾绪')).toBeTruthy();
     expect(document.querySelector('.shortcut-hint')?.textContent).toMatch(/^(⌘⇧S|Ctrl\+Shift\+S)$/);
-    const textarea = await screen.findByRole('textbox');
-    expect(document.activeElement).toBe(textarea);
+    const textarea = await screen.findByRole('textbox', { name: /为什么收藏/ });
+    // 焦点在 capturable 翻真后的 useEffect 里落地（App.tsx whyRef.focus()），
+    // findByRole 只保证输入框已挂载；并行全量跑时焦点 effect 可能尚未执行，waitFor 等它落定。
+    await waitFor(() => expect(document.activeElement).toBe(textarea));
   });
 
   it('页面信息只读展示：标题、地址、首字母色块，不请求外部图标', async () => {
@@ -136,7 +153,6 @@ describe('面板骨架（feat01 场景1 / feat02 场景1）', () => {
     expect(screen.getByText('我处理到哪了？')).toBeTruthy();
     expect(screen.getAllByText('可多选')).toHaveLength(3);
     expect(screen.getAllByText('单选')).toHaveLength(1);
-    expect(screen.getByText('维度的取值在「设置」里统一管理，这里只做点选')).toBeTruthy();
   });
 
   it('底部动作区：两个保存按钮在可收藏页面可用', async () => {
@@ -168,7 +184,7 @@ describe('不可收藏判定与禁用态（feat01 场景4 / feat02 场景2）', 
     expect(await screen.findByText('此页面无法收藏')).toBeTruthy();
     expect(screen.getByRole('button', { name: /保存并关闭 Tab/ })).toHaveProperty('disabled', true);
     expect(screen.getByRole('button', { name: '仅保存' })).toHaveProperty('disabled', true);
-    expect(screen.getByRole('textbox')).toHaveProperty('disabled', true);
+    expect(screen.getByRole('textbox', { name: /为什么收藏/ })).toHaveProperty('disabled', true);
     expect(document.querySelector('.dims')?.getAttribute('aria-disabled')).toBe('true');
     // 禁用态下面板整体置灰
     expect(document.querySelector('.panel')?.classList.contains('panel-uncapturable')).toBe(true);
@@ -182,7 +198,7 @@ describe('不可收藏判定与禁用态（feat01 场景4 / feat02 场景2）', 
 
     render(<App />);
 
-    const textarea = await screen.findByRole('textbox');
+    const textarea = await screen.findByRole('textbox', { name: /为什么收藏/ });
     expect(document.activeElement).not.toBe(textarea);
   });
 
@@ -198,11 +214,6 @@ describe('不可收藏判定与禁用态（feat01 场景4 / feat02 场景2）', 
 });
 
 describe('四维点选（feat04）', () => {
-  async function seedTaxonomy(overrides: Partial<Omit<Taxonomy, 'updatedAt'>>) {
-    const taxonomy = { ...createDefaultTaxonomy(), ...overrides };
-    await db.taxonomies.put({ id: 'local', taxonomy });
-  }
-
   it('取值集合来自本地分类（getTaxonomy），首次使用渲染默认集合（场景3）', async () => {
     await stashTarget(WEB_TARGET);
     mockNoActiveTab();
@@ -218,7 +229,7 @@ describe('四维点选（feat04）', () => {
     expect(screen.getByRole('button', { name: 'done' })).toBeTruthy();
   });
 
-  it('渲染的是「设置」里维护的那套取值，面板内无增删改入口（场景3）', async () => {
+  it('渲染的是与「设置」共享的那套取值，面板内有就地增删入口（场景3，feat08 增补）', async () => {
     await stashTarget(WEB_TARGET);
     mockNoActiveTab();
     await seedTaxonomy({
@@ -235,9 +246,10 @@ describe('四维点选（feat04）', () => {
     expect(screen.getByRole('button', { name: '写论文' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '归档' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: '世界模型' })).toBeNull();
-    // 只点选、不管理：分类区没有输入框与增删控件
-    expect(document.querySelector('.dims input')).toBeNull();
-    expect(screen.queryByRole('button', { name: /新增|添加|删除|改名/ })).toBeNull();
+    // 面板可就地增删取值（feat08）：每个维度有输入框与添加按钮，已有取值带删除按钮
+    expect(document.querySelectorAll('.dims .chip-add input')).toHaveLength(4);
+    expect(screen.getByRole('button', { name: '添加主题取值' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '删除取值 RAG' })).toBeTruthy();
   });
 
   it('多选维度（主题/形态/用途）点选 toggle，同维度可同时选中多个（场景1）', async () => {
@@ -293,6 +305,168 @@ describe('四维点选（feat04）', () => {
   });
 });
 
+describe('面板内就地增删取值（feat08）', () => {
+  it('场景1：输入新取值点加号 → 取值立即可见可点选，输入框清空且保持焦点', async () => {
+    await renderPanelWithDims();
+
+    const input = screen.getByRole('textbox', { name: '新主题取值' });
+    fireEvent.change(input, { target: { value: 'Agent' } });
+    fireEvent.click(screen.getByRole('button', { name: '添加主题取值' }));
+
+    const added = await screen.findByRole('button', { name: 'Agent' });
+    fireEvent.click(added);
+    expect(added.classList.contains('on')).toBe(true);
+    await waitFor(() => {
+      expect(input).toHaveProperty('value', '');
+      expect(document.activeElement).toBe(input);
+    });
+  });
+
+  it('场景1：输入框内按 Enter 等同点加号', async () => {
+    await renderPanelWithDims();
+
+    const input = screen.getByRole('textbox', { name: '新主题取值' });
+    fireEvent.change(input, { target: { value: 'Agent' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(await screen.findByRole('button', { name: 'Agent' })).toBeTruthy();
+  });
+
+  it('场景2：纯空白提交静默忽略——不添加、无提示、不落库', async () => {
+    await renderPanelWithDims();
+
+    const input = screen.getByRole('textbox', { name: '新主题取值' });
+    fireEvent.change(input, { target: { value: '   ' } });
+    fireEvent.click(screen.getByRole('button', { name: '添加主题取值' }));
+
+    expect(screen.queryByText('该取值已存在')).toBeNull();
+    expect(screen.queryByText('取值过长')).toBeNull();
+    await waitFor(() => expect(input).toHaveProperty('value', '   '));
+    expect(await db.taxonomies.get('local')).toBeUndefined();
+  });
+
+  it('场景2：重复取值提示「该取值已存在」，再次输入时提示消失', async () => {
+    await renderPanelWithDims();
+
+    const input = screen.getByRole('textbox', { name: '新主题取值' });
+    fireEvent.change(input, { target: { value: '世界模型' } });
+    fireEvent.click(screen.getByRole('button', { name: '添加主题取值' }));
+
+    expect(await screen.findByText('该取值已存在')).toBeTruthy();
+    fireEvent.change(input, { target: { value: '别的' } });
+    await waitFor(() => expect(screen.queryByText('该取值已存在')).toBeNull());
+  });
+
+  it('场景2：超过 30 字提示「取值过长」', async () => {
+    await renderPanelWithDims();
+
+    const input = screen.getByRole('textbox', { name: '新主题取值' });
+    fireEvent.change(input, {
+      target: { value: 'a'.repeat(TAXONOMY_VALUE_MAX + 1) },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '添加主题取值' }));
+
+    expect(await screen.findByText('取值过长')).toBeTruthy();
+  });
+
+  it('场景3：点 × 删除取值 → chip 消失，本地 taxonomy 同步更新', async () => {
+    await renderPanelWithDims();
+
+    fireEvent.click(screen.getByRole('button', { name: '删除取值 世界模型' }));
+
+    await waitFor(() => expect(screen.queryByRole('button', { name: '世界模型' })).toBeNull());
+    const row = await db.taxonomies.get('local');
+    expect(row?.taxonomy.topic).not.toContain('世界模型');
+  });
+
+  it('场景3：删除处于选中态的多选取值 → 选中同时取消', async () => {
+    await renderPanelWithDims();
+
+    fireEvent.click(screen.getByRole('button', { name: '世界模型' }));
+    expect(document.querySelectorAll('.dims .chip.on .chip-btn').length).toBeGreaterThan(1);
+    fireEvent.click(screen.getByRole('button', { name: '删除取值 世界模型' }));
+
+    await waitFor(() => {
+      // 仅剩默认选中的 inbox
+      const selected = document.querySelectorAll('.dims .chip.on .chip-btn');
+      expect(selected).toHaveLength(1);
+      expect(selected[0]?.textContent).toBe('inbox');
+    });
+  });
+
+  it('场景3：删除当前选中的状态 → 状态回退选中 Inbox', async () => {
+    await renderPanelWithDims();
+
+    fireEvent.click(screen.getByRole('button', { name: 'reading' }));
+    expect(screen.getByRole('button', { name: 'reading' }).classList.contains('on')).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: '删除取值 reading' }));
+
+    const inbox = await screen.findByRole('button', { name: 'inbox' });
+    await waitFor(() => {
+      expect(inbox.classList.contains('on')).toBe(true);
+      expect(screen.queryByRole('button', { name: 'reading' })).toBeNull();
+    });
+  });
+
+  it('场景4：Inbox 不可删除，提示「默认状态不可删除」且取值保留', async () => {
+    await renderPanelWithDims();
+
+    fireEvent.click(screen.getByRole('button', { name: '删除取值 inbox' }));
+
+    expect(await screen.findByText('默认状态不可删除')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'inbox' })).toBeTruthy();
+    // 受保护拒绝不产生任何落库（首次使用时 taxonomy 行本就不存在）
+    expect(await db.taxonomies.get('local')).toBeUndefined();
+  });
+
+  it('场景5：每个维度卡片三段结构（标题 → 取值区 → 底部修改区），修改区为末段', async () => {
+    await renderPanelWithDims();
+
+    const dims = document.querySelectorAll('.dims .dim');
+    expect(dims).toHaveLength(4);
+    dims.forEach((dim) => {
+      const segments = Array.from(dim.children).map((el) => el.classList[0]);
+      expect(segments).toEqual(['dim-head', 'chips', 'chip-add']);
+    });
+    // 底部修改区在每个维度内都存在且含输入框 + 加号
+    expect(document.querySelectorAll('.dims .chip-add input')).toHaveLength(4);
+    expect(document.querySelectorAll('.dims .chip-add button')).toHaveLength(4);
+    // 「维度的取值在设置里统一管理」提示随 feat08 移除
+    expect(screen.queryByText('维度的取值在「设置」里统一管理，这里只做点选')).toBeNull();
+    expect(document.querySelector('.dims-hint')).toBeNull();
+  });
+
+  it('场景6：不可收藏页面增删入口与点选一并禁用', async () => {
+    await stashTarget({ tabId: 1, url: 'about:blank', title: '内部页面', pinned: false });
+    mockNoActiveTab();
+    render(<App />);
+    await screen.findByText('此页面无法收藏');
+    await screen.findByRole('button', { name: '世界模型' });
+
+    const inputs = document.querySelectorAll<HTMLInputElement>('.dims .chip-add input');
+    expect(inputs).toHaveLength(4);
+    inputs.forEach((input) => expect(input.disabled).toBe(true));
+    expect(screen.getByRole('button', { name: '添加主题取值' })).toHaveProperty('disabled', true);
+    expect(screen.getByRole('button', { name: '删除取值 世界模型' })).toHaveProperty(
+      'disabled',
+      true,
+    );
+  });
+
+  it('不变量（smoke）：面板新增的取值落进与设置共享的本地 taxonomy', async () => {
+    await renderPanelWithDims();
+
+    fireEvent.change(screen.getByRole('textbox', { name: '新主题取值' }), {
+      target: { value: 'Agent' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '添加主题取值' }));
+
+    await screen.findByRole('button', { name: 'Agent' });
+    const row = await db.taxonomies.get('local');
+    expect(row?.taxonomy.topic).toContain('Agent');
+  });
+});
+
 describe('零点选默认态（feat04 场景4）', () => {
   it('不动任何分类时：状态保持 inbox 选中，主题/形态/用途全空（落库终验归 task-capture-save）', async () => {
     await stashTarget(WEB_TARGET);
@@ -302,7 +476,8 @@ describe('零点选默认态（feat04 场景4）', () => {
 
     const inbox = await screen.findByRole('button', { name: 'inbox' });
     expect(inbox.classList.contains('on')).toBe(true);
-    const selected = document.querySelectorAll('.dims .chip.on');
+    // chip 由 button 改为 span 胶囊容器（内含点选与删除两个按钮，feat08），选中态断言落到内部点选按钮上
+    const selected = document.querySelectorAll('.dims .chip.on .chip-btn');
     expect(selected).toHaveLength(1);
     expect(selected[0]).toBe(inbox);
   });
@@ -327,7 +502,7 @@ describe('重复收藏预填（feat06 场景1）', () => {
     render(<App />);
 
     expect(await screen.findByText('已收藏过 · 保存将更新')).toBeTruthy();
-    expect(screen.getByRole('textbox')).toHaveProperty('value', '旧理由');
+    expect(screen.getByRole('textbox', { name: /为什么收藏/ })).toHaveProperty('value', '旧理由');
     expect(screen.getByRole('button', { name: 'AI' }).classList.contains('on')).toBe(true);
     expect(screen.getByRole('button', { name: '论文' }).classList.contains('on')).toBe(true);
     expect(screen.getByRole('button', { name: '学习原理' }).classList.contains('on')).toBe(false);
@@ -344,7 +519,7 @@ describe('重复收藏预填（feat06 场景1）', () => {
     render(<App />);
 
     expect(await screen.findByText('已收藏过 · 保存将更新')).toBeTruthy();
-    expect(screen.getByRole('textbox')).toHaveProperty('value', '旧理由');
+    expect(screen.getByRole('textbox', { name: /为什么收藏/ })).toHaveProperty('value', '旧理由');
   });
 
   it('页面未收藏过 → 无更新提示，理由为空、默认 Inbox', async () => {
@@ -356,7 +531,7 @@ describe('重复收藏预填（feat06 场景1）', () => {
     await screen.findByText(WEB_TARGET.title);
     await screen.findByRole('button', { name: 'inbox' });
     expect(screen.queryByText('已收藏过 · 保存将更新')).toBeNull();
-    expect(screen.getByRole('textbox')).toHaveProperty('value', '');
+    expect(screen.getByRole('textbox', { name: /为什么收藏/ })).toHaveProperty('value', '');
     expect(screen.getByRole('button', { name: 'inbox' }).classList.contains('on')).toBe(true);
   });
 
@@ -370,7 +545,7 @@ describe('重复收藏预填（feat06 场景1）', () => {
     await screen.findByText(WEB_TARGET.title);
     await screen.findByRole('button', { name: 'inbox' });
     expect(screen.queryByText('已收藏过 · 保存将更新')).toBeNull();
-    expect(screen.getByRole('textbox')).toHaveProperty('value', '');
+    expect(screen.getByRole('textbox', { name: /为什么收藏/ })).toHaveProperty('value', '');
   });
 });
 
@@ -422,7 +597,7 @@ describe('理由输入框（feat03 场景1）', () => {
 
     render(<App />);
 
-    const textarea = await screen.findByRole('textbox');
+    const textarea = await screen.findByRole('textbox', { name: /为什么收藏/ });
     const label = document.querySelector('label[for="why"]');
     expect(label?.textContent).toContain('为什么收藏？');
     expect(label?.textContent).toContain('可选，但这句话以后最管用');
@@ -444,7 +619,7 @@ describe('键盘行为（feat03 场景2-5）', () => {
     const close = stubWindowClose();
     const removeSpy = vi.spyOn(browser.tabs, 'remove');
     render(<App bannerDelayMs={0} />);
-    const textarea = await screen.findByRole('textbox');
+    const textarea = await screen.findByRole('textbox', { name: /为什么收藏/ });
 
     fireEvent.change(textarea, { target: { value: '想看看 action 如何影响环境预测' } });
     const prevented = fireEvent.keyDown(textarea, { key: 'Enter' });
@@ -463,7 +638,7 @@ describe('键盘行为（feat03 场景2-5）', () => {
     await stashTarget(WEB_TARGET);
     mockNoActiveTab();
     render(<App bannerDelayMs={0} />);
-    const textarea = await screen.findByRole('textbox');
+    const textarea = await screen.findByRole('textbox', { name: /为什么收藏/ });
 
     const prevented = fireEvent.keyDown(textarea, { key: 'Enter', isComposing: true });
     expect(prevented).toBe(true); // 未 preventDefault，候选词正常上屏
@@ -475,7 +650,7 @@ describe('键盘行为（feat03 场景2-5）', () => {
     await stashTarget(WEB_TARGET);
     mockNoActiveTab();
     render(<App bannerDelayMs={0} />);
-    const textarea = await screen.findByRole('textbox');
+    const textarea = await screen.findByRole('textbox', { name: /为什么收藏/ });
 
     const prevented = fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: true });
     expect(prevented).toBe(true); // 未 preventDefault，走浏览器默认换行
@@ -488,7 +663,7 @@ describe('键盘行为（feat03 场景2-5）', () => {
     mockNoActiveTab();
     const close = stubWindowClose();
     render(<App bannerDelayMs={0} />);
-    const textarea = await screen.findByRole('textbox');
+    const textarea = await screen.findByRole('textbox', { name: /为什么收藏/ });
 
     fireEvent.change(textarea, { target: { value: '写了一半的草稿' } });
     fireEvent.keyDown(textarea, { key: 'Escape' });
@@ -572,7 +747,9 @@ describe('保存动作与横幅（feat05 场景1/2/6 + feat04 场景4 + feat06 �
     await renderCapturable();
     await screen.findByText('已收藏过 · 保存将更新');
 
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: '更新的理由' } });
+    fireEvent.change(screen.getByRole('textbox', { name: /为什么收藏/ }), {
+      target: { value: '更新的理由' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'AI' }));
     fireEvent.click(screen.getByRole('button', { name: '仅保存' }));
 
@@ -616,7 +793,7 @@ describe('顶栏主页入口（homepage feat01 场景1/2）', () => {
     const create = mockTabsCreate();
 
     render(<App />);
-    const textarea = await screen.findByRole('textbox');
+    const textarea = await screen.findByRole('textbox', { name: /为什么收藏/ });
     await screen.findByRole('button', { name: '世界模型' });
     fireEvent.change(textarea, { target: { value: '没保存的理由草稿' } });
     fireEvent.click(screen.getByRole('button', { name: '世界模型' }));

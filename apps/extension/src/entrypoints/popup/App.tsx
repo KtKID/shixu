@@ -6,11 +6,12 @@ import {
   type Taxonomy,
 } from '@x-threadpick/shared';
 import { getActiveBookmarks, getBookmarkByUrl, captureBookmark } from '../../db/bookmarks';
-import { getTaxonomy } from '../../db/taxonomy';
+import { addTaxonomyValue, getTaxonomy, removeTaxonomyValue } from '../../db/taxonomy';
 import { isCapturableUrl, resolveCaptureTarget } from '../../lib/capture-invoke';
 
 /**
  * 收藏面板：顶栏 / 只读页面信息 / 理由输入（feat03）/ 四维点选（feat04）/ 保存（feat05）/ 重复收藏预填（feat06）/ 库入口。
+ * 四维卡片可就地增删取值（feat08，与设置页共享同一套 taxonomy）；增删校验与文案沿用设置页 DimensionsCard。
  * 保存链路：captureBookmark upsert → 横幅 → （保存并关闭 Tab 时）关目标标签页 → 关面板。
  */
 
@@ -22,6 +23,15 @@ const DIMS = [
 ] as const;
 
 type MultiDim = 'topic' | 'type' | 'purpose';
+
+type DimKey = MultiDim | 'status';
+
+const INPUT_PLACEHOLDER: Record<DimKey, string> = {
+  topic: '新主题…',
+  type: '新形态…',
+  purpose: '新用途…',
+  status: '新状态…',
+};
 
 /** 四维点选状态：多选维度为取值数组，状态单选为单个取值（默认 inbox）。 */
 interface DimSelection {
@@ -69,6 +79,19 @@ export default function App(props: CapturePanelProps) {
   });
   const [saving, setSaving] = useState<'close' | 'only' | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
+  const [inputs, setInputs] = useState<Record<DimKey, string>>({
+    topic: '',
+    type: '',
+    purpose: '',
+    status: '',
+  });
+  const [errors, setErrors] = useState<Record<DimKey, string | null>>({
+    topic: null,
+    type: null,
+    purpose: null,
+    status: null,
+  });
+  const inputRefs = useRef<Partial<Record<DimKey, HTMLInputElement | null>>>({});
   const whyRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -141,6 +164,53 @@ export default function App(props: CapturePanelProps) {
         ? prev[dim].filter((v) => v !== value)
         : [...prev[dim], value],
     }));
+  };
+
+  /**
+   * 就地新增取值（feat08 场景1/2）：成功后刷新取值、清空输入并保持焦点；空白静默，
+   * 重复/过长文案与设置页一致；再次输入时清错误。
+   */
+  const addValue = (dim: DimKey): void => {
+    addTaxonomyValue(dim, inputs[dim] ?? '')
+      .then(async (result) => {
+        if (result.status === 'added') {
+          setTaxonomy(await getTaxonomy());
+          setInputs((prev) => ({ ...prev, [dim]: '' }));
+          setErrors((prev) => ({ ...prev, [dim]: null }));
+          inputRefs.current[dim]?.focus();
+        } else if (result.reason === 'duplicate') {
+          setErrors((prev) => ({ ...prev, [dim]: '该取值已存在' }));
+        } else if (result.reason === 'too_long') {
+          setErrors((prev) => ({ ...prev, [dim]: '取值过长' }));
+        }
+      })
+      .catch((err: unknown) => console.error('[popup] 添加取值失败', err));
+  };
+
+  /**
+   * 就地删除取值（feat08 场景3/4）：删的是选中值时同步取消点选，状态被删回退默认 Inbox；
+   * Inbox 受保护不可删；删除不动任何书签数据（db 层保证）。
+   */
+  const removeValue = (dim: DimKey, value: string): void => {
+    removeTaxonomyValue(dim, value)
+      .then(async (result) => {
+        if (result.status === 'removed') {
+          setTaxonomy(await getTaxonomy());
+          setErrors((prev) => ({ ...prev, [dim]: null }));
+          if (dim === 'status') {
+            setSelection((prev) =>
+              prev.status === value ? { ...prev, status: DEFAULT_STATUS } : prev,
+            );
+          } else {
+            setSelection((prev) => ({ ...prev, [dim]: prev[dim].filter((v) => v !== value) }));
+          }
+        } else if (result.reason === 'protected') {
+          setErrors((prev) => ({ ...prev, [dim]: '默认状态不可删除' }));
+        } else {
+          setTaxonomy(await getTaxonomy());
+        }
+      })
+      .catch((err: unknown) => console.error('[popup] 删除取值失败', err));
   };
 
   /**
@@ -288,30 +358,76 @@ export default function App(props: CapturePanelProps) {
                       ? selection.status === value
                       : selection[dim.key].includes(value);
                   return (
-                    <button
+                    <span
                       key={value}
-                      type="button"
                       className={`chip${on ? ' on' : ''}${dim.key === 'status' ? ' flow status-chip' : ''}`}
-                      aria-pressed={on}
-                      disabled={!capturable}
-                      onClick={() => {
-                        if (dim.key === 'status') {
-                          setSelection((prev) => ({ ...prev, status: value }));
-                        } else {
-                          toggleMulti(dim.key, value);
-                        }
-                      }}
                     >
-                      {value}
-                    </button>
+                      <button
+                        type="button"
+                        className={`chip-btn${on ? ' on' : ''}`}
+                        aria-pressed={on}
+                        disabled={!capturable}
+                        onClick={() => {
+                          if (dim.key === 'status') {
+                            setSelection((prev) => ({ ...prev, status: value }));
+                          } else {
+                            toggleMulti(dim.key, value);
+                          }
+                        }}
+                      >
+                        {value}
+                      </button>
+                      <button
+                        type="button"
+                        className="x"
+                        aria-label={`删除取值 ${value}`}
+                        disabled={!capturable}
+                        onClick={() => removeValue(dim.key, value)}
+                      >
+                        ×
+                      </button>
+                    </span>
                   );
                 })
               )}
             </div>
+            <div className="chip-add">
+              <input
+                type="text"
+                placeholder={INPUT_PLACEHOLDER[dim.key]}
+                aria-label={`新${dim.name}取值`}
+                value={inputs[dim.key]}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setInputs((prev) => ({ ...prev, [dim.key]: value }));
+                  if (errors[dim.key] !== null) {
+                    setErrors((prev) => ({ ...prev, [dim.key]: null }));
+                  }
+                }}
+                onKeyDown={(event) => {
+                  if (event.key !== 'Enter') return;
+                  if (event.nativeEvent.isComposing) return;
+                  addValue(dim.key);
+                }}
+                disabled={!capturable}
+                ref={(el) => {
+                  inputRefs.current[dim.key] = el;
+                }}
+              />
+              <button
+                type="button"
+                title="添加"
+                aria-label={`添加${dim.name}取值`}
+                disabled={!capturable}
+                onClick={() => addValue(dim.key)}
+              >
+                +
+              </button>
+            </div>
+            {errors[dim.key] !== null && <p className="dim-error">{errors[dim.key]}</p>}
           </div>
         ))}
       </div>
-      <div className="dims-hint">维度的取值在「设置」里统一管理，这里只做点选</div>
 
       <div className="footer">
         <button
