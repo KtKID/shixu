@@ -15,3 +15,18 @@ export function formatDateTime(iso: string): string {
   if (d.getFullYear() === now.getFullYear()) return `${d.getMonth() + 1}月${d.getDate()}日 ${hm}`;
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 ${hm}`;
 }
+
+function startOfDay(d: Date): number {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+}
+
+/**
+ * 收藏时间的相对展示（homepage feat04）：今天 / 昨天 / N 天前。
+ * 按自然日差计算（跨月正确），未来时间（时钟偏差）按「今天」兜底。
+ */
+export function formatRelativeTime(iso: string, now = new Date()): string {
+  const dayDiff = Math.round((startOfDay(now) - startOfDay(new Date(iso))) / 86400000);
+  if (dayDiff <= 0) return '今天';
+  if (dayDiff === 1) return '昨天';
+  return `${dayDiff} 天前`;
+}

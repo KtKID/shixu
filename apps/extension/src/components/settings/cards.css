@@ -1,96 +1,5 @@
-/* 视觉基准：docs/assets/settings.html（移植时按 spec 修订移除状态维度的「流转/拖拽」交互样式） */
-:root {
-  --bg: #f6f1e8;
-  --bg-deep: #efe8da;
-  --card: #fffdf8;
-  --ink: #2e2820;
-  --ink-soft: #6f6557;
-  --ink-faint: #a89b88;
-  --line: #e7ddcc;
-  --accent: #b5502a;
-  --accent-soft: #f3e2d8;
-  --accent-ink: #8f3d1e;
-  --gold: #c39a4b;
-  --ok: #5d7d4f;
-  --ok-soft: #e6eddf;
-  --radius: 14px;
-  --shadow: 0 1px 2px rgba(62, 48, 32, 0.05), 0 8px 28px rgba(62, 48, 32, 0.07);
-}
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-html {
-  -webkit-font-smoothing: antialiased;
-}
-
-body {
-  background:
-    radial-gradient(1200px 500px at 80% -10%, #f9efe0 0%, transparent 60%),
-    radial-gradient(900px 420px at -10% 30%, #f3ece0 0%, transparent 55%), var(--bg);
-  color: var(--ink);
-  font-family: -apple-system, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-  font-size: 14px;
-  line-height: 1.6;
-  min-height: 100vh;
-  padding: 56px 24px 96px;
-}
-
-.serif {
-  font-family: Georgia, 'Times New Roman', 'Songti SC', 'Noto Serif SC', serif;
-}
-
-.page {
-  max-width: 680px;
-  margin: 0 auto;
-}
-
-/* ── 头部 ── */
-header {
-  margin-bottom: 44px;
-}
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-.brand-mark {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #c25c33, #a03f1d);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fbf3e7;
-  font-size: 16px;
-  box-shadow: 0 3px 10px rgba(160, 63, 29, 0.3);
-}
-.brand-name {
-  font-size: 15px;
-  letter-spacing: 0.04em;
-  color: var(--ink-soft);
-}
-.brand-name b {
-  color: var(--ink);
-  font-weight: 600;
-}
-h1 {
-  font-size: 34px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  font-family: Georgia, 'Songti SC', 'Noto Serif SC', serif;
-}
-.subtitle {
-  color: var(--ink-faint);
-  margin-top: 6px;
-  font-size: 13px;
-  letter-spacing: 0.02em;
-}
+/* 设置卡片公共样式（自原 settings entrypoint 迁移，视觉基准 docs/assets/settings.html）。
+ * 卡片由主页「网络连接」「分类维度」分区使用；:root 调色变量由宿主页样式表提供（见 home/index.css）。 */
 
 /* ── 卡片 ── */
 section.card {
@@ -571,14 +480,6 @@ input:focus {
 
 .err-text {
   color: var(--accent-ink);
-}
-
-footer {
-  text-align: center;
-  color: var(--ink-faint);
-  font-size: 12px;
-  margin-top: 40px;
-  letter-spacing: 0.06em;
 }
 
 @media (max-width: 560px) {
