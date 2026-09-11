@@ -116,19 +116,25 @@ export default function RecentSection({
 
   /** 无筛选时的标题随变体：library「全部收藏」/ recent「最近添加」；筛选态统一「筛选结果 · N 条命中」。 */
   const defaultTitle = variant === 'library' ? '全部收藏' : '最近添加';
+  /** 页头副标题（task-home-layout）：静态文案，不随筛选态变化。 */
+  const tagline =
+    variant === 'library' ? '把收藏变成可再次遇见的线索。' : '刚拾起的新线索，都先放在这里。';
 
   return (
     <div className="recent">
-      <div className="result-head">
-        <h2 className="result-title serif">
-          {filtering ? `筛选结果 · ${visible.length} 条命中` : defaultTitle}
-        </h2>
+      <header className="page-head">
+        <div>
+          <h2 className="page-title serif">
+            {filtering ? `筛选结果 · ${visible.length} 条命中` : defaultTitle}
+          </h2>
+          <p className="page-tagline">{tagline}</p>
+        </div>
         {filtering && (
           <button type="button" className="clear-filters" onClick={() => setFilter(emptyFilter())}>
             清除全部筛选
           </button>
         )}
-      </div>
+      </header>
       {state === 'loading' ? (
         <p className="loading">正在读取收藏库…</p>
       ) : state.bookmarks.length === 0 ? (

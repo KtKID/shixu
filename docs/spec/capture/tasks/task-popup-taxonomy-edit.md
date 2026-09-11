@@ -86,6 +86,7 @@ Tests  51 passed (51)
 ```
 
 测试修正记录（②阶段遗留的断言问题，非方向调整）：
+
 - 「Inbox 不可删除」用例原断言 `row?.taxonomy.status).toContain(DEFAULT_STATUS)`——受保护拒绝不落库、首次使用时 'local' 行本就不存在，改为断言 `db.taxonomies.get('local')` 为 undefined（拒绝时不落库）
 - 既有断言随结构升级的三处合法迁移（feat04 场景3「无增删入口」反转、`.dims .chip.on` 落到 `.chip-btn`、`getByRole('textbox')` 带 name 消除多匹配）已在 ③ 实现步骤第 6 条记录
 

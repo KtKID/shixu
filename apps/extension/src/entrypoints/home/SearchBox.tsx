@@ -40,10 +40,13 @@ export default function SearchBox({ query, onQueryChange, hitCount }: SearchBoxP
         className="searchbox-input"
         value={query}
         onChange={(event) => onQueryChange(event.target.value)}
-        placeholder="搜索标题、来源域名或收藏理由… ⌘K"
+        placeholder="搜索标题、来源域名或收藏理由…"
         aria-label="搜索收藏"
       />
       {hitCount !== null && <span className="searchbox-count">{hitCount} 条结果</span>}
+      <span className="searchbox-kbd" aria-hidden="true">
+        ⌘K
+      </span>
     </div>
   );
 }

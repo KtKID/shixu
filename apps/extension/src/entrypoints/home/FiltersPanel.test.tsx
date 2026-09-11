@@ -45,6 +45,16 @@ beforeEach(() => {
 });
 
 describe('候选 chips 取自 taxonomy 取值（feat05 场景1 / T3）', () => {
+  it('四个维度名称旁各渲染一个图标（.fdim-ic，task-home-layout）', () => {
+    setup([make('a', { topics: ['AI'], createdAt: '2026-09-10T08:00:00.000Z' })]);
+
+    const dims = document.querySelectorAll('.filters .fdim');
+    expect(dims).toHaveLength(4);
+    dims.forEach((dim) => {
+      expect(dim.querySelector('.fdim-ic')?.textContent ?? '').not.toBe('');
+    });
+  });
+
   it('四个维度的候选都渲染（状态取值首字母大写展示）', () => {
     setup([make('a', { topics: ['AI'], createdAt: '2026-09-10T08:00:00.000Z' })]);
 

@@ -587,3 +587,26 @@ describe('「全部收藏」视图（feat07）', () => {
     expect(onNavigateImport).toHaveBeenCalledOnce();
   });
 });
+
+describe('页头：大标题 + 副标题（task-home-layout）', () => {
+  it('「全部收藏」页头含大标题与副标题「把收藏变成可再次遇见的线索。」', async () => {
+    await seed({ url: 'https://a.example/1', title: '甲条', daysAgo: 0 });
+    render(<RecentSection variant="library" onNavigateImport={vi.fn()} />);
+
+    await screen.findByText('甲条');
+    const head = document.querySelector('.page-head');
+    expect(head).not.toBeNull();
+    expect(head?.querySelector('.page-title')?.textContent).toBe('全部收藏');
+    expect(head?.querySelector('.page-tagline')?.textContent).toBe('把收藏变成可再次遇见的线索。');
+  });
+
+  it('「最近新增」页头含大标题「最近添加」与一句副标题', async () => {
+    await seed({ url: 'https://a.example/1', title: '甲条', daysAgo: 0 });
+    render(<RecentSection onNavigateImport={vi.fn()} />);
+
+    await screen.findByText('甲条');
+    const head = document.querySelector('.page-head');
+    expect(head?.querySelector('.page-title')?.textContent).toBe('最近添加');
+    expect(head?.querySelector('.page-tagline')?.textContent ?? '').not.toBe('');
+  });
+});

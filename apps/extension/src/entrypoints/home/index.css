@@ -1,5 +1,6 @@
 /* 主页外壳：视觉参考 docs/assets/homepage.html（全新实现，不直接复用原型文件）。
- * 与原型的差异点（spec 声明的有意设计）：内容区水平居中且有最大宽度（原型为紧凑靠左）。 */
+ * task-home-layout：内容区放宽（--content-width 1240px）、卡片按宽度自动多列、
+ * 搜索框居中胶囊、页头大标题 + 副标题；内容仍水平居中（feat02 场景4 不变量）。 */
 
 :root {
   --bg: #f5efe3;
@@ -17,7 +18,7 @@
   --radius: 14px;
   --shadow: 0 1px 2px rgba(62, 48, 32, 0.05), 0 8px 24px rgba(62, 48, 32, 0.06);
   --sidebar-width: 200px;
-  --content-width: 760px;
+  --content-width: 1240px;
 }
 
 * {
@@ -144,7 +145,7 @@ body {
 .main {
   flex: 1;
   min-width: 0;
-  padding: 34px 44px 60px;
+  padding: 40px 48px 72px;
 }
 
 .main-inner {
@@ -304,6 +305,30 @@ body {
   background: var(--ok-soft);
 }
 
+/* ── 收藏视图页头（task-home-layout）：大标题 + 副标题，「清除全部筛选」在右上 ── */
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 26px;
+}
+.page-title {
+  font-size: 30px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+}
+.page-tagline {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--ink-faint);
+}
+.page-head .clear-filters {
+  flex: none;
+  margin-top: 12px;
+}
+
 /* ── 「最近新增」视图（RecentSection，视觉参考原型结果区） ── */
 .result-head {
   display: flex;
@@ -339,15 +364,16 @@ body {
   color: var(--accent);
 }
 
-/* ── 搜索框（SearchBox，feat06）：位于筛选面板上方 ── */
+/* ── 搜索框（SearchBox，feat06）：居中胶囊（单个圆角矩形，无内嵌区域），位于筛选面板上方 ── */
 .searchbox {
   display: flex;
   align-items: center;
   gap: 9px;
-  padding: 0 13px;
-  margin-bottom: 14px;
+  max-width: 620px;
+  margin: 0 auto 26px;
+  padding: 0 18px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 999px;
   background: var(--card);
   box-shadow: var(--shadow);
 }
@@ -362,11 +388,11 @@ body {
 .searchbox-input {
   flex: 1;
   min-width: 0;
-  padding: 9px 0;
+  padding: 11px 0;
   border: none;
   background: none;
   font-family: inherit;
-  font-size: 13px;
+  font-size: 13.5px;
   color: var(--ink);
 }
 .searchbox-input:focus {
@@ -378,46 +404,64 @@ body {
   color: var(--ink-faint);
   font-family: ui-monospace, 'SF Mono', Menlo, monospace;
 }
+/* ⌘K 快捷键提示：搜索框末尾纯文本，不设边框与背景（用户反馈：带盒子的徽标丑） */
+.searchbox-kbd {
+  flex: none;
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  letter-spacing: 0.04em;
+}
 
-/* ── 四维筛选面板（FiltersPanel，feat05）── */
+/* ── 四维筛选面板（FiltersPanel，feat05）：行间虚线分隔，维度名带图标 ── */
 .filters {
-  background: var(--card);
+  background: rgba(255, 253, 248, 0.65);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 14px 16px;
-  margin-bottom: 18px;
+  padding: 10px 22px;
+  margin-bottom: 26px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
 }
 .fdim {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
+  padding: 9px 0;
+}
+.fdim + .fdim {
+  border-top: 1px dashed #eee4d2;
 }
 .fdim-name {
   flex: none;
-  width: 32px;
-  font-size: 11.5px;
+  width: 64px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.fdim-ic {
+  font-size: 12px;
   color: var(--ink-faint);
 }
 .fchips {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
 }
 .fchip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 11px;
+  padding: 4px 13px;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: #faf6ec;
   font-family: inherit;
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--ink-soft);
   cursor: pointer;
   transition:
@@ -467,15 +511,11 @@ body {
   color: #fbf3e7;
 }
 
+/* 卡片网格：按容器宽度自动排列（宽屏一排更多列，task-home-layout） */
 .cards {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-}
-@media (max-width: 900px) {
-  .cards {
-    grid-template-columns: 1fr;
-  }
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
 }
 
 .bcard {
@@ -500,7 +540,7 @@ body {
     0 14px 32px rgba(62, 48, 32, 0.1);
 }
 .thumb {
-  height: 84px;
+  height: 96px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -609,5 +649,8 @@ body {
   }
   .main {
     padding: 24px 18px 40px;
+  }
+  .page-title {
+    font-size: 24px;
   }
 }

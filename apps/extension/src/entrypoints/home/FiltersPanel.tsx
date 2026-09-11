@@ -12,11 +12,11 @@ import {
  * 主题维度独有「满足任一 / 全部满足」模式切换。
  */
 
-const DIMENSION_META: readonly { key: Dimension; name: string }[] = [
-  { key: 'topic', name: '主题' },
-  { key: 'type', name: '形态' },
-  { key: 'purpose', name: '用途' },
-  { key: 'status', name: '状态' },
+const DIMENSION_META: readonly { key: Dimension; name: string; icon: string }[] = [
+  { key: 'topic', name: '主题', icon: '❖' },
+  { key: 'type', name: '形态', icon: '◉' },
+  { key: 'purpose', name: '用途', icon: '◎' },
+  { key: 'status', name: '状态', icon: '▸' },
 ];
 
 /** 状态取值存小写（DEFAULT_STATUS='inbox'），展示层首字母大写（与收藏卡片一致）。 */
@@ -39,7 +39,12 @@ export default function FiltersPanel({ bookmarks, taxonomy, filter, onChange }: 
         const facets = countFacetValues(bookmarks, filter, meta.key, taxonomy[meta.key]);
         return (
           <div className="fdim" key={meta.key}>
-            <span className="fdim-name">{meta.name}</span>
+            <span className="fdim-name">
+              <span className="fdim-ic" aria-hidden="true">
+                {meta.icon}
+              </span>
+              {meta.name}
+            </span>
             {meta.key === 'topic' && (
               <div className="fmode" role="group" aria-label="主题匹配模式">
                 <button

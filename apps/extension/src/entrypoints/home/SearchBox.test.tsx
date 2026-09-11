@@ -52,6 +52,14 @@ describe('快捷键聚焦（feat06 场景4）', () => {
 });
 
 describe('受控输入与命中条数展示（feat06 场景1/2 组件层）', () => {
+  it('⌘K 提示是搜索框末尾的纯文本（无盒子），placeholder 不带 ⌘K（task-home-layout）', () => {
+    render(<SearchBox query="" onQueryChange={vi.fn()} hitCount={null} />);
+
+    expect(document.querySelector('.searchbox-kbd')?.textContent).toBe('⌘K');
+    expect(
+      screen.getByRole('textbox', { name: '搜索收藏' }).getAttribute('placeholder'),
+    ).not.toContain('⌘K');
+  });
   it('输入回调把新值交给父层；搜索中展示「N 条结果」，未搜索不展示', () => {
     const onQueryChange = vi.fn();
     const { rerender } = render(
