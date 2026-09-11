@@ -83,12 +83,18 @@ async function seedTaxonomy(overrides: Partial<Omit<Taxonomy, 'updatedAt'>>) {
   await db.taxonomies.put({ id: 'local', taxonomy });
 }
 
-/** 渲染可收藏面板并等四维取值就绪（默认集合首个主题取值为「世界模型」）。 */
+/** 渲染可收藏面板并等四维取值就绪（默认集合首个主题取值为「世界模型」）；返回 render 结果供 unmount 模拟重开。 */
 async function renderPanelWithDims() {
   await stashTarget(WEB_TARGET);
   mockNoActiveTab();
-  render(<App />);
+  const view = render(<App />);
   await screen.findByRole('button', { name: '世界模型' });
+  return view;
+}
+
+/** 进入修改模式（feat08 场景7）：点顶栏「修改」，取值的「×」删除按钮随切换出现。 */
+function enterEditMode() {
+  fireEvent.click(screen.getByRole('button', { name: '修改' }));
 }
 
 beforeEach(async () => {
@@ -246,7 +252,10 @@ describe('四维点选（feat04）', () => {
     expect(screen.getByRole('button', { name: '写论文' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '归档' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: '世界模型' })).toBeNull();
-    // 面板可就地增删取值（feat08）：每个维度有输入框与添加按钮，已有取值带删除按钮
+    // 面板可就地增删取值（feat08）：修改区与删除按钮都收进修改模式（场景7/8 修订）
+    expect(document.querySelector('.dims .chip-add')).toBeNull();
+    expect(screen.queryByRole('button', { name: '删除取值 RAG' })).toBeNull();
+    enterEditMode();
     expect(document.querySelectorAll('.dims .chip-add input')).toHaveLength(4);
     expect(screen.getByRole('button', { name: '添加主题取值' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '删除取值 RAG' })).toBeTruthy();
@@ -305,9 +314,10 @@ describe('四维点选（feat04）', () => {
   });
 });
 
-describe('面板内就地增删取值（feat08）', () => {
-  it('场景1：输入新取值点加号 → 取值立即可见可点选，输入框清空且保持焦点', async () => {
+describe('面板内就地增删取值（feat08，增删均在修改模式下）', () => {
+  it('场景1：修改模式下输入新取值点加号 → 取值立即可见可点选，输入框清空且保持焦点', async () => {
     await renderPanelWithDims();
+    enterEditMode();
 
     const input = screen.getByRole('textbox', { name: '新主题取值' });
     fireEvent.change(input, { target: { value: 'Agent' } });
@@ -324,6 +334,7 @@ describe('面板内就地增删取值（feat08）', () => {
 
   it('场景1：输入框内按 Enter 等同点加号', async () => {
     await renderPanelWithDims();
+    enterEditMode();
 
     const input = screen.getByRole('textbox', { name: '新主题取值' });
     fireEvent.change(input, { target: { value: 'Agent' } });
@@ -334,6 +345,7 @@ describe('面板内就地增删取值（feat08）', () => {
 
   it('场景2：纯空白提交静默忽略——不添加、无提示、不落库', async () => {
     await renderPanelWithDims();
+    enterEditMode();
 
     const input = screen.getByRole('textbox', { name: '新主题取值' });
     fireEvent.change(input, { target: { value: '   ' } });
@@ -347,6 +359,7 @@ describe('面板内就地增删取值（feat08）', () => {
 
   it('场景2：重复取值提示「该取值已存在」，再次输入时提示消失', async () => {
     await renderPanelWithDims();
+    enterEditMode();
 
     const input = screen.getByRole('textbox', { name: '新主题取值' });
     fireEvent.change(input, { target: { value: '世界模型' } });
@@ -359,6 +372,7 @@ describe('面板内就地增删取值（feat08）', () => {
 
   it('场景2：超过 30 字提示「取值过长」', async () => {
     await renderPanelWithDims();
+    enterEditMode();
 
     const input = screen.getByRole('textbox', { name: '新主题取值' });
     fireEvent.change(input, {
@@ -369,9 +383,10 @@ describe('面板内就地增删取值（feat08）', () => {
     expect(await screen.findByText('取值过长')).toBeTruthy();
   });
 
-  it('场景3：点 × 删除取值 → chip 消失，本地 taxonomy 同步更新', async () => {
+  it('场景3：修改模式下点 × 删除取值 → chip 消失，本地 taxonomy 同步更新', async () => {
     await renderPanelWithDims();
 
+    enterEditMode();
     fireEvent.click(screen.getByRole('button', { name: '删除取值 世界模型' }));
 
     await waitFor(() => expect(screen.queryByRole('button', { name: '世界模型' })).toBeNull());
@@ -384,6 +399,7 @@ describe('面板内就地增删取值（feat08）', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '世界模型' }));
     expect(document.querySelectorAll('.dims .chip.on .chip-btn').length).toBeGreaterThan(1);
+    enterEditMode();
     fireEvent.click(screen.getByRole('button', { name: '删除取值 世界模型' }));
 
     await waitFor(() => {
@@ -399,6 +415,7 @@ describe('面板内就地增删取值（feat08）', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'reading' }));
     expect(screen.getByRole('button', { name: 'reading' }).classList.contains('on')).toBe(true);
+    enterEditMode();
     fireEvent.click(screen.getByRole('button', { name: '删除取值 reading' }));
 
     const inbox = await screen.findByRole('button', { name: 'inbox' });
@@ -408,9 +425,10 @@ describe('面板内就地增删取值（feat08）', () => {
     });
   });
 
-  it('场景4：Inbox 不可删除，提示「默认状态不可删除」且取值保留', async () => {
+  it('场景4：修改模式下 Inbox 不可删除，提示「默认状态不可删除」且取值保留', async () => {
     await renderPanelWithDims();
 
+    enterEditMode();
     fireEvent.click(screen.getByRole('button', { name: '删除取值 inbox' }));
 
     expect(await screen.findByText('默认状态不可删除')).toBeTruthy();
@@ -419,16 +437,23 @@ describe('面板内就地增删取值（feat08）', () => {
     expect(await db.taxonomies.get('local')).toBeUndefined();
   });
 
-  it('场景5：每个维度卡片三段结构（标题 → 取值区 → 底部修改区），修改区为末段', async () => {
+  it('场景5：默认两段（标题→取值区）；修改模式下三段，修改区为末段', async () => {
     await renderPanelWithDims();
 
-    const dims = document.querySelectorAll('.dims .dim');
+    let dims = document.querySelectorAll('.dims .dim');
     expect(dims).toHaveLength(4);
+    dims.forEach((dim) => {
+      const segments = Array.from(dim.children).map((el) => el.classList[0]);
+      expect(segments).toEqual(['dim-head', 'chips']);
+    });
+
+    enterEditMode();
+    dims = document.querySelectorAll('.dims .dim');
     dims.forEach((dim) => {
       const segments = Array.from(dim.children).map((el) => el.classList[0]);
       expect(segments).toEqual(['dim-head', 'chips', 'chip-add']);
     });
-    // 底部修改区在每个维度内都存在且含输入框 + 加号
+    // 修改模式下每个维度都有输入框 + 加号
     expect(document.querySelectorAll('.dims .chip-add input')).toHaveLength(4);
     expect(document.querySelectorAll('.dims .chip-add button')).toHaveLength(4);
     // 「维度的取值在设置里统一管理」提示随 feat08 移除
@@ -443,6 +468,11 @@ describe('面板内就地增删取值（feat08）', () => {
     await screen.findByText('此页面无法收藏');
     await screen.findByRole('button', { name: '世界模型' });
 
+    // 默认无修改区；「修改」切换本身可用（视图切换非数据操作）
+    expect(document.querySelector('.dims .chip-add')).toBeNull();
+    enterEditMode();
+    expect(screen.getByRole('button', { name: '完成' })).toBeTruthy();
+    // 切换出的修改区输入框、加号与「×」随四维区一并禁用
     const inputs = document.querySelectorAll<HTMLInputElement>('.dims .chip-add input');
     expect(inputs).toHaveLength(4);
     inputs.forEach((input) => expect(input.disabled).toBe(true));
@@ -453,8 +483,63 @@ describe('面板内就地增删取值（feat08）', () => {
     );
   });
 
+  it('场景7：默认非修改模式——顶栏有「修改」按钮，取值无「×」、卡片无修改区', async () => {
+    await renderPanelWithDims();
+
+    expect(screen.getByRole('button', { name: '修改' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '完成' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '删除取值 世界模型' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '删除取值 inbox' })).toBeNull();
+    expect(document.querySelector('.dims .chip-add')).toBeNull();
+  });
+
+  it('场景7：点「修改」进入（按钮变「完成」、「×」与修改区出现），点「完成」退出后全部隐藏', async () => {
+    await renderPanelWithDims();
+
+    enterEditMode();
+    expect(screen.queryByRole('button', { name: '修改' })).toBeNull();
+    expect(screen.getByRole('button', { name: '完成' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '删除取值 世界模型' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '删除取值 inbox' })).toBeTruthy();
+    expect(document.querySelectorAll('.dims .chip-add input')).toHaveLength(4);
+
+    fireEvent.click(screen.getByRole('button', { name: '完成' }));
+    expect(screen.getByRole('button', { name: '修改' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '删除取值 世界模型' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '删除取值 inbox' })).toBeNull();
+    expect(document.querySelector('.dims .chip-add')).toBeNull();
+  });
+
+  it('场景7：退出修改模式清除增删错误提示，再次进入不残留', async () => {
+    await renderPanelWithDims();
+
+    enterEditMode();
+    fireEvent.change(screen.getByRole('textbox', { name: '新主题取值' }), {
+      target: { value: '世界模型' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '添加主题取值' }));
+    expect(await screen.findByText('该取值已存在')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: '完成' }));
+    enterEditMode();
+    expect(screen.queryByText('该取值已存在')).toBeNull();
+  });
+
+  it('场景7：修改模式下关闭面板，重新打开回到默认非修改模式（状态不持久化）', async () => {
+    const { unmount } = await renderPanelWithDims();
+    enterEditMode();
+    expect(screen.getByRole('button', { name: '完成' })).toBeTruthy();
+    unmount();
+
+    // popup 每次打开都是全新页面加载：重开 = 全新挂载，不延续上次的修改模式
+    await renderPanelWithDims();
+    expect(screen.getByRole('button', { name: '修改' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '删除取值 世界模型' })).toBeNull();
+  });
+
   it('不变量（smoke）：面板新增的取值落进与设置共享的本地 taxonomy', async () => {
     await renderPanelWithDims();
+    enterEditMode();
 
     fireEvent.change(screen.getByRole('textbox', { name: '新主题取值' }), {
       target: { value: 'Agent' },
@@ -821,8 +906,8 @@ describe('顶栏主页入口（homepage feat01 场景1/2）', () => {
   });
 });
 
-describe('底部库信息（homepage feat01 场景5）', () => {
-  it('显示「已入库 N 条」计数，不再出现「打开导入器」按钮', async () => {
+describe('顶栏库计数（capture feat07 修订 / homepage feat01 场景5 修订）', () => {
+  it('库有 2 条 → 顶栏「已收藏」左侧显示「收藏2条」，底部计数条移除', async () => {
     await stashTarget(WEB_TARGET);
     mockNoActiveTab();
     await db.bookmarks.add(
@@ -834,18 +919,23 @@ describe('底部库信息（homepage feat01 场景5）', () => {
 
     render(<App />);
 
-    expect(await screen.findByText('已入库 2 条')).toBeTruthy();
-    // 导入入口统一为主页左侧导航的「导入已有书签」条目
+    expect(await screen.findByText('收藏2条')).toBeTruthy();
+    // 计数为 .topbar-links 首位，「已收藏」按钮紧随其后（左侧紧邻）
+    const links = document.querySelector('.topbar-links');
+    expect(links?.firstElementChild?.classList.contains('library-count')).toBe(true);
+    expect(links?.children[1]?.textContent).toBe('已收藏');
+    // 底部计数条整体移除；导入入口统一为主页左侧导航的「导入已有书签」条目
+    expect(document.querySelector('.library-bar')).toBeNull();
     expect(screen.queryByRole('button', { name: '打开导入器' })).toBeNull();
   });
 
-  it('空库显示「已入库 0 条」，同样无导入器按钮', async () => {
+  it('空库显示「收藏0条」，同样无导入器按钮', async () => {
     await stashTarget(WEB_TARGET);
     mockNoActiveTab();
 
     render(<App />);
 
-    expect(await screen.findByText('已入库 0 条')).toBeTruthy();
+    expect(await screen.findByText('收藏0条')).toBeTruthy();
     expect(screen.queryByRole('button', { name: '打开导入器' })).toBeNull();
   });
 });

@@ -11,17 +11,19 @@
   --accent-soft: #f3e2d8;
   --accent-ink: #8f3d1e;
   --ok: #5d7d4f;
-  --radius: 12px;
+  --radius: 6px;
+}
+
+/* 高度随内容自适应（feat08 场景8）：不设固定高度、不做内部滚动区；
+   默认态一屏放下；内容超出浏览器 popup 上限（Chrome 600px）时由浏览器原生滚动兜底 */
+html {
+  -webkit-font-smoothing: antialiased;
 }
 
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-}
-
-html {
-  -webkit-font-smoothing: antialiased;
 }
 
 body {
@@ -42,7 +44,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 16px 8px;
+  padding: 5px 16px 4px;
 }
 
 .brand {
@@ -54,7 +56,7 @@ body {
 .brand-mark {
   width: 22px;
   height: 22px;
-  border-radius: 7px;
+  border-radius: 4px;
   background: linear-gradient(135deg, #c25c33, #a03f1d);
   display: flex;
   align-items: center;
@@ -68,14 +70,21 @@ body {
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.03em;
+  line-height: 22px;
 }
 
+/* 顶栏纵向对称：右侧计数/按钮/快捷键提示统一 22px 盒高（与左侧 brand-mark 同高）、
+   line-height 1 内容垂直居中——修复计数纯文本与按钮高度不一致导致的基线错位 */
 .shortcut-hint {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  line-height: 1;
   font-size: 10.5px;
   color: var(--ink-faint);
   border: 1px solid var(--line);
-  border-radius: 5px;
-  padding: 1px 6px;
+  border-radius: 3px;
+  padding: 0 6px;
   background: #fbf8f1;
   letter-spacing: 0.03em;
 }
@@ -88,10 +97,14 @@ body {
 }
 
 .topbar-link {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 7px;
+  line-height: 1;
   border: none;
   background: none;
-  padding: 3px 7px;
-  border-radius: 6px;
+  border-radius: 3px;
   font-family: inherit;
   font-size: 11px;
   color: var(--ink-soft);
@@ -104,10 +117,16 @@ body {
   color: var(--accent-ink);
 }
 
+/* 修改模式激活态（feat08 场景7）：「完成」给明显反馈 */
+.topbar-link.on {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
 /* ── 页面信息 ── */
 .page-info {
-  margin: 0 14px 10px;
-  padding: 10px 12px;
+  margin: 0 14px 5px;
+  padding: 5px 12px;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -119,7 +138,7 @@ body {
 .favicon {
   width: 28px;
   height: 28px;
-  border-radius: 8px;
+  border-radius: 4px;
   flex: none;
   background: linear-gradient(135deg, #e8dcc4, #d5c4a3);
   display: flex;
@@ -156,11 +175,11 @@ body {
 
 /* ── 不可收藏提示 ── */
 .uncapturable-note {
-  margin: 0 14px 10px;
-  padding: 8px 12px;
+  margin: 0 14px 5px;
+  padding: 4px 12px;
   background: var(--accent-soft);
   border: 1px solid #e5cbb8;
-  border-radius: 10px;
+  border-radius: 5px;
   font-size: 12px;
   color: var(--accent-ink);
   text-align: center;
@@ -176,11 +195,11 @@ body {
 
 /* 已收藏过提示（feat06 场景1） */
 .update-hint {
-  margin: 0 14px 10px;
-  padding: 7px 12px;
+  margin: 0 14px 5px;
+  padding: 4px 12px;
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 5px;
   font-size: 11.5px;
   color: var(--ink-soft);
   letter-spacing: 0.03em;
@@ -188,8 +207,8 @@ body {
 
 /* ── 收藏理由（主角） ── */
 .context {
-  margin: 0 14px 10px;
-  padding: 10px 12px 11px;
+  margin: 0 14px 5px;
+  padding: 5px 12px 6px;
   background: var(--card);
   border: 1px solid #e2cfa8;
   border-radius: var(--radius);
@@ -205,7 +224,7 @@ body {
   font-size: 12px;
   color: var(--accent-ink);
   font-weight: 600;
-  margin-bottom: 7px;
+  margin-bottom: 4px;
   letter-spacing: 0.03em;
 }
 
@@ -236,18 +255,18 @@ body {
   cursor: not-allowed;
 }
 
-/* ── 四维（feat08：卡片三段 = 顶部标题 / 中部取值区 / 底部修改区） ── */
+/* ── 四维（feat08：默认两段 = 顶部标题 / 取值区；修改模式下卡片尾部再多一段修改区） ── */
 .dims {
-  margin: 0 14px 4px;
+  margin: 0 14px 2px;
 }
 
 /* 左右与底部 padding 交给各段，使底部修改区贴齐卡片左右边缘 */
 .dim {
-  padding: 7px 0 0;
+  padding: 4px 0 0;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  margin-bottom: 6px;
+  margin-bottom: 3px;
   overflow: hidden;
 }
 
@@ -255,7 +274,7 @@ body {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 6px;
+  margin-bottom: 3px;
   padding: 0 12px;
 }
 
@@ -283,7 +302,7 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
-  padding: 0 12px 8px;
+  padding: 0 12px 4px;
 }
 
 .chips-placeholder {
@@ -296,7 +315,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  border-radius: 16px;
+  border-radius: 8px;
   border: 1px solid #e0d4bf;
   background: #fff;
   transition: all 0.14s;
@@ -327,11 +346,16 @@ body {
   font-family: inherit;
   font-size: 12px;
   color: var(--ink);
-  padding: 2px 2px 2px 10px;
+  padding: 1px 10px;
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
   transition: color 0.14s;
+}
+
+/* 修改模式（.dims.editing）下「×」跟随其后，收窄右内边距 */
+.dims.editing .chip-btn {
+  padding-right: 2px;
 }
 
 .chip-btn:disabled {
@@ -393,7 +417,7 @@ body {
   font-family: inherit;
   font-size: 12px;
   color: var(--ink);
-  padding: 7px 12px;
+  padding: 4px 12px;
 }
 
 .chip-add input::placeholder {
@@ -429,7 +453,7 @@ body {
 }
 
 .dim-error {
-  padding: 5px 12px 7px;
+  padding: 2px 12px 4px;
   font-size: 10.5px;
   color: var(--accent-ink);
 }
@@ -439,16 +463,16 @@ body {
   display: flex;
   gap: 8px;
   align-items: center;
-  padding: 8px 14px 12px;
+  padding: 4px 14px 5px;
 }
 
 .btn {
   border: none;
-  border-radius: 9px;
+  border-radius: 5px;
   cursor: pointer;
   font-family: inherit;
   font-size: 13px;
-  padding: 10px 14px;
+  padding: 8px 14px;
   transition: all 0.16s;
 }
 
@@ -500,11 +524,11 @@ body {
 /* ── 已保存横幅（feat05） ── */
 .saved-banner {
   display: none;
-  margin: 0 14px 12px;
-  padding: 9px 14px;
+  margin: 0 14px 6px;
+  padding: 5px 14px;
   background: #e6eddf;
   border: 1px solid #d3dfc6;
-  border-radius: 10px;
+  border-radius: 5px;
   font-size: 12px;
   color: var(--ok);
   align-items: center;
@@ -515,12 +539,14 @@ body {
   display: flex;
 }
 
-/* ── 库入口 ── */
-.library-bar {
-  display: flex;
+/* 顶栏库计数（feat07 修订）：「已收藏」左侧的纯文本提示，读取中显示「收藏…条」 */
+.topbar-links .library-count {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 16px 12px;
+  height: 22px;
+  line-height: 1;
   font-size: 11px;
   color: var(--ink-faint);
+  margin-right: 4px;
+  white-space: nowrap;
 }

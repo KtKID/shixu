@@ -10,8 +10,10 @@ import { addTaxonomyValue, getTaxonomy, removeTaxonomyValue } from '../../db/tax
 import { isCapturableUrl, resolveCaptureTarget } from '../../lib/capture-invoke';
 
 /**
- * 收藏面板：顶栏 / 只读页面信息 / 理由输入（feat03）/ 四维点选（feat04）/ 保存（feat05）/ 重复收藏预填（feat06）/ 库入口。
+ * 收藏面板：顶栏 / 只读页面信息 / 理由输入（feat03）/ 四维点选（feat04）/ 保存（feat05）/ 重复收藏预填（feat06）/ 顶栏库计数。
  * 四维卡片可就地增删取值（feat08，与设置页共享同一套 taxonomy）；增删校验与文案沿用设置页 DimensionsCard。
+ * 增删入口（「×」删除钮与底部修改区）都收进修改模式（feat08 场景7/8）：顶栏「修改/完成」切换，
+ * 默认不渲染，日常点选一屏放下；popup 每次打开都是全新页面加载，editing 不持久化，重开自然复位。
  * 保存链路：captureBookmark upsert → 横幅 → （保存并关闭 Tab 时）关目标标签页 → 关面板。
  */
 
@@ -79,6 +81,8 @@ export default function App(props: CapturePanelProps) {
   });
   const [saving, setSaving] = useState<'close' | 'only' | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
+  // 修改模式（feat08 场景7）：true 时取值渲染「×」删除按钮；组件内状态不持久化，重开面板即复位
+  const [editing, setEditing] = useState(false);
   const [inputs, setInputs] = useState<Record<DimKey, string>>({
     topic: '',
     type: '',
@@ -164,6 +168,18 @@ export default function App(props: CapturePanelProps) {
         ? prev[dim].filter((v) => v !== value)
         : [...prev[dim], value],
     }));
+  };
+
+  /**
+   * 修改模式切换（feat08 场景7）：退出时清掉增删错误提示，
+   * 「该取值已存在」等不残留到下次进入修改模式。
+   */
+  const toggleEditing = (): void => {
+    const next = !editing;
+    setEditing(next);
+    if (!next) {
+      setErrors({ topic: null, type: null, purpose: null, status: null });
+    }
   };
 
   /**
@@ -263,6 +279,7 @@ export default function App(props: CapturePanelProps) {
           <div className="brand-name">拾绪</div>
         </div>
         <div className="topbar-links">
+          <span className="library-count">{count === null ? '收藏…条' : `收藏${count}条`}</span>
           <button
             type="button"
             className="topbar-link"
@@ -280,6 +297,14 @@ export default function App(props: CapturePanelProps) {
             }}
           >
             设置
+          </button>
+          <button
+            type="button"
+            className={`topbar-link${editing ? ' on' : ''}`}
+            aria-pressed={editing}
+            onClick={toggleEditing}
+          >
+            {editing ? '完成' : '修改'}
           </button>
           <span className="shortcut-hint">{isMacPlatform() ? '⌘⇧S' : 'Ctrl+Shift+S'}</span>
         </div>
@@ -338,7 +363,7 @@ export default function App(props: CapturePanelProps) {
         />
       </div>
 
-      <div className="dims" aria-disabled={!capturable}>
+      <div className={editing ? 'dims editing' : 'dims'} aria-disabled={!capturable}>
         {DIMS.map((dim) => (
           <div className="dim" key={dim.key}>
             <div className="dim-head">
@@ -377,54 +402,60 @@ export default function App(props: CapturePanelProps) {
                       >
                         {value}
                       </button>
-                      <button
-                        type="button"
-                        className="x"
-                        aria-label={`删除取值 ${value}`}
-                        disabled={!capturable}
-                        onClick={() => removeValue(dim.key, value)}
-                      >
-                        ×
-                      </button>
+                      {editing && (
+                        <button
+                          type="button"
+                          className="x"
+                          aria-label={`删除取值 ${value}`}
+                          disabled={!capturable}
+                          onClick={() => removeValue(dim.key, value)}
+                        >
+                          ×
+                        </button>
+                      )}
                     </span>
                   );
                 })
               )}
             </div>
-            <div className="chip-add">
-              <input
-                type="text"
-                placeholder={INPUT_PLACEHOLDER[dim.key]}
-                aria-label={`新${dim.name}取值`}
-                value={inputs[dim.key]}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  setInputs((prev) => ({ ...prev, [dim.key]: value }));
-                  if (errors[dim.key] !== null) {
-                    setErrors((prev) => ({ ...prev, [dim.key]: null }));
-                  }
-                }}
-                onKeyDown={(event) => {
-                  if (event.key !== 'Enter') return;
-                  if (event.nativeEvent.isComposing) return;
-                  addValue(dim.key);
-                }}
-                disabled={!capturable}
-                ref={(el) => {
-                  inputRefs.current[dim.key] = el;
-                }}
-              />
-              <button
-                type="button"
-                title="添加"
-                aria-label={`添加${dim.name}取值`}
-                disabled={!capturable}
-                onClick={() => addValue(dim.key)}
-              >
-                +
-              </button>
-            </div>
-            {errors[dim.key] !== null && <p className="dim-error">{errors[dim.key]}</p>}
+            {editing && (
+              <>
+                <div className="chip-add">
+                  <input
+                    type="text"
+                    placeholder={INPUT_PLACEHOLDER[dim.key]}
+                    aria-label={`新${dim.name}取值`}
+                    value={inputs[dim.key]}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setInputs((prev) => ({ ...prev, [dim.key]: value }));
+                      if (errors[dim.key] !== null) {
+                        setErrors((prev) => ({ ...prev, [dim.key]: null }));
+                      }
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key !== 'Enter') return;
+                      if (event.nativeEvent.isComposing) return;
+                      addValue(dim.key);
+                    }}
+                    disabled={!capturable}
+                    ref={(el) => {
+                      inputRefs.current[dim.key] = el;
+                    }}
+                  />
+                  <button
+                    type="button"
+                    title="添加"
+                    aria-label={`添加${dim.name}取值`}
+                    disabled={!capturable}
+                    onClick={() => addValue(dim.key)}
+                  >
+                    +
+                  </button>
+                </div>
+                {errors[dim.key] !== null && <p className="dim-error">{errors[dim.key]}</p>}
+              </>
+            )}
           </div>
         ))}
       </div>
@@ -450,10 +481,6 @@ export default function App(props: CapturePanelProps) {
         >
           仅保存
         </button>
-      </div>
-
-      <div className="library-bar">
-        <span className="library-count">{count === null ? '…' : `已入库 ${count} 条`}</span>
       </div>
     </div>
   );
