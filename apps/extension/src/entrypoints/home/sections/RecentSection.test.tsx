@@ -530,3 +530,60 @@ describe('搜索与筛选叠加（feat06 场景3 UI 集成）', () => {
     expect(searchInput.value).toBe('');
   });
 });
+
+describe('「全部收藏」视图（feat07）', () => {
+  it('默认展示全部收藏（不截 3 条），标题「全部收藏」，无「最近 3 条」提示（场景1）', async () => {
+    for (const item of [
+      { url: 'https://a.example/1', title: '第一条', daysAgo: 0 },
+      { url: 'https://b.example/2', title: '第二条', daysAgo: 1 },
+      { url: 'https://c.example/3', title: '第三条', daysAgo: 2 },
+      { url: 'https://d.example/4', title: '第四条', daysAgo: 3 },
+      { url: 'https://e.example/5', title: '第五条', daysAgo: 4 },
+    ]) {
+      await seed(item);
+    }
+    render(<RecentSection variant="library" onNavigateImport={vi.fn()} />);
+
+    expect(await screen.findByText('全部收藏')).toBeTruthy();
+    expect(screen.queryByText('最近添加')).toBeNull();
+    expect(screen.queryByText(/选择上方标签开始按维度筛选/)).toBeNull();
+    const titles = Array.from(document.querySelectorAll('.bcard .btitle')).map(
+      (el) => el.textContent ?? '',
+    );
+    expect(titles).toEqual(['第一条', '第二条', '第三条', '第四条', '第五条']); // 全部 5 条，新到旧
+  });
+
+  it('筛选与搜索行为与「最近新增」一致（场景2）', async () => {
+    await seed({ url: 'https://a.example/1', title: '甲条', daysAgo: 0, topics: ['AI'] });
+    await seed({ url: 'https://b.example/2', title: '乙条', daysAgo: 1, topics: ['世界模型'] });
+    await seed({ url: 'https://c.example/3', title: '丙条', daysAgo: 2, topics: ['AI'] });
+
+    render(<RecentSection variant="library" onNavigateImport={vi.fn()} />);
+    await screen.findByText('甲条');
+
+    fireEvent.click(screen.getByRole('button', { name: /^AI/ }));
+    expect(await screen.findByText('筛选结果 · 2 条命中')).toBeTruthy();
+    expect(screen.getByRole('button', { name: '清除全部筛选' })).toBeTruthy();
+
+    // 搜索叠加：AI 前提下标题含「甲」仅 1 条
+    fireEvent.change(screen.getByRole('textbox', { name: '搜索收藏' }), {
+      target: { value: '甲' },
+    });
+    expect(await screen.findByText('1 条结果')).toBeTruthy();
+    expect(screen.queryByText('乙条')).toBeNull();
+
+    // 清除全部筛选 → 回到「全部收藏」默认视图（仍全量 3 条，不回到截断态）
+    fireEvent.click(screen.getByRole('button', { name: '清除全部筛选' }));
+    expect(await screen.findByText('全部收藏')).toBeTruthy();
+    expect(screen.getByText('乙条')).toBeTruthy();
+  });
+
+  it('空收藏库显示空态提示与去导入引导（场景3）', async () => {
+    const onNavigateImport = vi.fn();
+    render(<RecentSection variant="library" onNavigateImport={onNavigateImport} />);
+
+    expect(await screen.findByText(/收藏库还是空的/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /导入已有书签/ }));
+    expect(onNavigateImport).toHaveBeenCalledOnce();
+  });
+});

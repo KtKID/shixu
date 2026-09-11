@@ -14,10 +14,11 @@ import FiltersPanel from '../FiltersPanel';
 import SearchBox from '../SearchBox';
 
 /**
- * 「最近新增」视图（homepage feat04/feat05/feat06）：本地收藏库（未登录照常可用，feat01 场景4）。
- * 无筛选且未搜索时按收藏时间（createdAt）从新到旧展示最近 3 条；
- * 有筛选时标题切「筛选结果 · N 条命中」（feat05 场景1/6）；
- * 搜索框关键词与四维筛选取「且」叠加，无匹配显示「没有找到相关收藏」（feat06）。
+ * 收藏库视图（homepage feat04/feat05/feat06/feat07）：本地收藏库（未登录照常可用，feat01 场景4）。
+ * recent 变体（「最近新增」）：无筛选且未搜索时按收藏时间（createdAt）从新到旧展示最近 3 条；
+ * library 变体（「全部收藏」，feat07）：默认不截取地展示全部，标题「全部收藏」、无最近 3 条提示；
+ * 两变体共享筛选/搜索行为：有筛选时标题切「筛选结果 · N 条命中」（feat05 场景1/6）、
+ * 搜索关键词与四维筛选取「且」叠加，无匹配显示「没有找到相关收藏」（feat06）。
  */
 
 const RECENT_LIMIT = 3;
@@ -81,7 +82,16 @@ function BookmarkCard({ bookmark }: { bookmark: Bookmark }) {
 
 type LoadState = 'loading' | { bookmarks: Bookmark[]; taxonomy: Taxonomy };
 
-export default function RecentSection({ onNavigateImport }: { onNavigateImport: () => void }) {
+/** 视图变体：recent = 「最近新增」（默认截 3 条）；library = 「全部收藏」（feat07，默认全量）。 */
+export type RecentSectionVariant = 'recent' | 'library';
+
+export default function RecentSection({
+  onNavigateImport,
+  variant = 'recent',
+}: {
+  onNavigateImport: () => void;
+  variant?: RecentSectionVariant;
+}) {
   const [state, setState] = useState<LoadState>('loading');
   const [filter, setFilter] = useState<FilterSelection>(emptyFilter);
 
@@ -94,21 +104,24 @@ export default function RecentSection({ onNavigateImport }: { onNavigateImport: 
       });
   }, []);
 
-  /** 命中集合（applyFilter 已按收藏时间新到旧排列）；无筛选且未搜索 = 全量排序后截取最近 3 条。 */
+  /** 命中集合（applyFilter 已按收藏时间新到旧排列）；library 变体或筛选/搜索中 = 全量，recent 默认截取最近 3 条。 */
   const searching = filter.query.trim() !== '';
   const filtering = hasActiveFilter(filter);
-  const expandAll = searching || filtering;
+  const expandAll = searching || filtering || variant === 'library';
   const visible = useMemo(() => {
     if (state === 'loading') return [] as Bookmark[];
     const hits = applyFilter(state.bookmarks, filter);
     return expandAll ? hits : hits.slice(0, RECENT_LIMIT);
   }, [state, filter, expandAll]);
 
+  /** 无筛选时的标题随变体：library「全部收藏」/ recent「最近添加」；筛选态统一「筛选结果 · N 条命中」。 */
+  const defaultTitle = variant === 'library' ? '全部收藏' : '最近添加';
+
   return (
     <div className="recent">
       <div className="result-head">
         <h2 className="result-title serif">
-          {filtering ? `筛选结果 · ${visible.length} 条命中` : '最近添加'}
+          {filtering ? `筛选结果 · ${visible.length} 条命中` : defaultTitle}
         </h2>
         {filtering && (
           <button type="button" className="clear-filters" onClick={() => setFilter(emptyFilter())}>

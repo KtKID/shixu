@@ -13,15 +13,16 @@ beforeEach(async () => {
 });
 
 describe('主页左侧导航（feat02 场景1 / 场景3）', () => {
-  it('导航条目从上到下依次为四项，默认选中「最近新增」', () => {
+  it('导航条目从上到下依次为五项（feat07 增补「全部收藏」），默认选中「最近新增」', () => {
     render(<App />);
 
     const items = screen.getByRole('navigation', { name: '主导航' }).querySelectorAll('.nav-item');
-    expect(items).toHaveLength(4);
+    expect(items).toHaveLength(5);
     expect(items[0]?.textContent).toContain('最近新增');
-    expect(items[1]?.textContent).toContain('网络连接');
-    expect(items[2]?.textContent).toContain('分类维度');
-    expect(items[3]?.textContent).toContain('导入已有书签');
+    expect(items[1]?.textContent).toContain('全部收藏');
+    expect(items[2]?.textContent).toContain('网络连接');
+    expect(items[3]?.textContent).toContain('分类维度');
+    expect(items[4]?.textContent).toContain('导入已有书签');
     expect(items[0]?.classList.contains('active')).toBe(true);
     expect(items[0]?.getAttribute('aria-current')).toBe('page');
     expect(items[1]?.getAttribute('aria-current')).toBeNull();
@@ -33,7 +34,7 @@ describe('主页左侧导航（feat02 场景1 / 场景3）', () => {
     const nav = screen.getByRole('navigation', { name: '主导航' });
     expect(screen.queryByText('视图')).toBeNull();
     expect(screen.queryByText('回收站')).toBeNull();
-    expect(nav.querySelectorAll('.nav-item')).toHaveLength(4);
+    expect(nav.querySelectorAll('.nav-item')).toHaveLength(5);
   });
 
   it('点击条目切换选中分区', () => {
@@ -41,8 +42,26 @@ describe('主页左侧导航（feat02 场景1 / 场景3）', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '分类维度' }));
     const items = screen.getByRole('navigation', { name: '主导航' }).querySelectorAll('.nav-item');
-    expect(items[2]?.classList.contains('active')).toBe(true);
+    expect(items[3]?.classList.contains('active')).toBe(true);
     expect(items[0]?.classList.contains('active')).toBe(false);
+  });
+});
+
+describe('「全部收藏」条目（feat07）', () => {
+  it('点击「全部收藏」切换选中，内容区标题为「全部收藏」', async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '全部收藏' }));
+    const items = screen.getByRole('navigation', { name: '主导航' }).querySelectorAll('.nav-item');
+    expect(items[1]?.classList.contains('active')).toBe(true);
+    expect(await screen.findByRole('heading', { name: '全部收藏' })).toBeTruthy();
+  });
+
+  it('空收藏库时同样可达，显示空态与去导入引导', async () => {
+    render(<App initialSection="library" />);
+
+    expect(await screen.findByText(/收藏库还是空的/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: /去「导入已有书签」/ })).toBeTruthy();
   });
 });
 
@@ -51,12 +70,14 @@ describe('地址指定初始条目（feat01 场景2 的落点承载）', () => {
     render(<App initialSection="network" />);
 
     const items = screen.getByRole('navigation', { name: '主导航' }).querySelectorAll('.nav-item');
-    expect(items[1]?.classList.contains('active')).toBe(true);
+    // feat07 后导航五项，「网络连接」为第三项（index 2）
+    expect(items[2]?.classList.contains('active')).toBe(true);
     expect(items[0]?.classList.contains('active')).toBe(false);
   });
 
   it('parseSectionHash：合法 hash 解析为对应条目，空/未知值回退「最近新增」', () => {
     expect(parseSectionHash('#recent')).toBe('recent');
+    expect(parseSectionHash('#library')).toBe('library');
     expect(parseSectionHash('#network')).toBe('network');
     expect(parseSectionHash('#dimensions')).toBe('dimensions');
     expect(parseSectionHash('#import')).toBe('import');

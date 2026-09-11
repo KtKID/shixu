@@ -10,15 +10,16 @@ import ImportSection from './sections/ImportSection';
 
 /**
  * 插件主页外壳：左侧导航（条目即功能分区）+ 右侧内容区。
- * 导航固定四项、无预留项（feat02 场景1/3）；内容区水平居中且有最大宽度（feat02 场景4，见 index.css）。
+ * 导航固定五项、无预留项（feat02 场景1/3，feat07 增补「全部收藏」）；内容区水平居中且有最大宽度（feat02 场景4，见 index.css）。
  * 地址 hash 指定初始条目（#network 等），供 popup「设置」按钮直达（feat01 场景2）。
  * 「网络连接」「分类维度」内的行为沿用《设置页面》spec，卡片自原 settings entrypoint 迁入公共目录。
  */
 
-export type SectionKey = 'recent' | 'network' | 'dimensions' | 'import';
+export type SectionKey = 'recent' | 'library' | 'network' | 'dimensions' | 'import';
 
 const SECTIONS: readonly { key: SectionKey; label: string; icon: string }[] = [
   { key: 'recent', label: '最近新增', icon: '⌂' },
+  { key: 'library', label: '全部收藏', icon: '▤' },
   { key: 'network', label: '网络连接', icon: '⟡' },
   { key: 'dimensions', label: '分类维度', icon: '❖' },
   { key: 'import', label: '导入已有书签', icon: '⇩' },
@@ -93,6 +94,11 @@ export default function App({ initialSection = 'recent' }: { initialSection?: Se
           {section === 'recent' && (
             <section className="section" aria-label="最近新增">
               <RecentSection onNavigateImport={() => setSection('import')} />
+            </section>
+          )}
+          {section === 'library' && (
+            <section className="section" aria-label="全部收藏">
+              <RecentSection variant="library" onNavigateImport={() => setSection('import')} />
             </section>
           )}
           {section === 'network' && (
