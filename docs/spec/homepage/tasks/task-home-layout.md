@@ -48,7 +48,7 @@
 
 ### 实现步骤
 
-1. `index.css`：`--content-width` 760px → 1240px；`.main` padding 加大为 `40px 48px 72px`；内容仍 `margin: 0 auto` 居中（feat02 场景4 不变量）
+1. `index.css`：`--content-width` 760px → 2000px；`.main` padding 加大为 `40px 48px 72px`；内容仍 `margin: 0 auto` 居中（feat02 场景4 不变量）
 2. `RecentSection.tsx`：标题行 `.result-head` 改为页头 `.page-head`（大标题 `.page-title` + 副标题 `.page-tagline`，「清除全部筛选」留在右上）；标题文案规则不变（筛选态仍「筛选结果 · N 条命中」）；副标题按变体取静态文案
 3. `index.css`：新增 `.page-head` / `.page-title`（30px 衬线）/ `.page-tagline` 样式，窄屏（≤720px）标题缩到 24px
 4. `SearchBox.tsx` + `index.css`：搜索框改居中胶囊（`max-width: 620px`、`border-radius: 999px`、输入行高加大），单个圆角矩形无内嵌盒子；⌘K 快捷键提示为搜索框末尾的纯文本（`.searchbox-kbd`，无边框无背景）
@@ -58,6 +58,7 @@
 
 测试修正记录（x-qdev 第 3 步）：
 
+- 用户视觉反馈（交付后，第 4 次）：内容区上限 1240px 仍不够宽，改为 `--content-width: 2000px`（仍居中、仍有上限，不违背 feat02 场景4）。实测：2560px 视口内容 2000px 居中、卡片 7 列；1728px 视口内容占满可用宽（左右各 48px padding）、卡片 5 列
 - 用户视觉反馈（交付后，第 3 次）：⌘K 不要放在 placeholder 文案里，移到搜索框最右端，但保持纯文本（不要带回边框底色的盒子）。实现：placeholder 恢复为「搜索标题、来源域名或收藏理由…」，搜索框末尾加 `.searchbox-kbd` 纯文本元素（CSS 只设字号/颜色/字距，契约测试断言该规则不含 border 与 background 声明）
 - 用户视觉反馈（交付后，第 2 次）：搜索框里仍有一个带边框圆角底色的内嵌盒子，与胶囊外框两端重叠成「框中框」。Playwright 实测 computed 样式定位根因：`components/settings/cards.css` 被主页全局引入，其中裸元素选择器 `input[type='text']`（特异性 0-1-1）压过 `.searchbox-input`（0-1-0），把设置卡片表单的边框/9px 圆角/#fbf8f1 底色漏到搜索输入框上。修复：cards.css 的 `label` / `input[...]` / `input::placeholder` / `input:focus` 全部限定到 `.card` 内；layout.test.ts 新增「样式不外泄」契约（裸 input/label 选择器必须为 []）。修复后实测：搜索框输入框 computed 无边框透明底，「网络连接」卡片内输入框样式不受影响（截图人工复核通过）
 - 用户视觉反馈（交付后，第 1 次）：搜索框内嵌的 ⌘K 徽标是带边框底色的独立盒子，套在胶囊里呈「框中框」。去掉 `.searchbox-kbd` 元素与其样式，⌘K 提示放回 placeholder；搜索框保持单个圆角矩形。对应测试由「渲染徽标」改为「无内嵌徽标盒子 + placeholder 含 ⌘K」（先红后绿）

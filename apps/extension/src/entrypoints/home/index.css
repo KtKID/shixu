@@ -1,5 +1,5 @@
 /* 主页外壳：视觉参考 docs/assets/homepage.html（全新实现，不直接复用原型文件）。
- * task-home-layout：内容区放宽（--content-width 1240px）、卡片按宽度自动多列、
+ * task-home-layout：内容区放宽（--content-width 2000px）、卡片按宽度自动多列、
  * 搜索框居中胶囊、页头大标题 + 副标题；内容仍水平居中（feat02 场景4 不变量）。 */
 
 :root {
@@ -18,7 +18,7 @@
   --radius: 14px;
   --shadow: 0 1px 2px rgba(62, 48, 32, 0.05), 0 8px 24px rgba(62, 48, 32, 0.06);
   --sidebar-width: 200px;
-  --content-width: 1240px;
+  --content-width: 2000px;
 }
 
 * {
