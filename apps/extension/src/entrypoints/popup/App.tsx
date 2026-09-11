@@ -108,11 +108,15 @@ export default function App(props: CapturePanelProps) {
     if (capturable) whyRef.current?.focus();
   }, [capturable]);
 
-  const openImporter = (): void => {
-    browser.runtime
-      .openOptionsPage()
-      .then(() => window.close())
-      .catch(() => window.close());
+  /**
+   * 顶栏入口（homepage feat01 场景1/2）：新标签页整页打开插件主页并落到指定条目；
+   * 面板随 window.close() 销毁——未保存的理由与点选自然丢弃，不自动保存。
+   */
+  const openHome = (section: 'recent' | 'network'): void => {
+    browser.tabs
+      .create({ url: browser.runtime.getURL(`/home.html#${section}`) })
+      .catch(() => undefined)
+      .finally(() => window.close());
   };
 
   /**
@@ -188,7 +192,27 @@ export default function App(props: CapturePanelProps) {
           <div className="brand-mark serif">✦</div>
           <div className="brand-name">拾绪</div>
         </div>
-        <span className="shortcut-hint">{isMacPlatform() ? '⌘⇧S' : 'Ctrl+Shift+S'}</span>
+        <div className="topbar-links">
+          <button
+            type="button"
+            className="topbar-link"
+            onClick={() => {
+              openHome('recent');
+            }}
+          >
+            已收藏
+          </button>
+          <button
+            type="button"
+            className="topbar-link"
+            onClick={() => {
+              openHome('network');
+            }}
+          >
+            设置
+          </button>
+          <span className="shortcut-hint">{isMacPlatform() ? '⌘⇧S' : 'Ctrl+Shift+S'}</span>
+        </div>
       </header>
 
       {target === null ? (
@@ -314,9 +338,6 @@ export default function App(props: CapturePanelProps) {
 
       <div className="library-bar">
         <span className="library-count">{count === null ? '…' : `已入库 ${count} 条`}</span>
-        <button type="button" className="library-link" onClick={openImporter}>
-          打开导入器
-        </button>
       </div>
     </div>
   );

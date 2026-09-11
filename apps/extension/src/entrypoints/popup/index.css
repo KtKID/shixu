@@ -80,6 +80,30 @@ body {
   letter-spacing: 0.03em;
 }
 
+/* ── 顶栏主页入口（homepage feat01）── */
+.topbar-links {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.topbar-link {
+  border: none;
+  background: none;
+  padding: 3px 7px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 11px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: all 0.14s;
+}
+
+.topbar-link:hover {
+  background: var(--card);
+  color: var(--accent-ink);
+}
+
 /* ── 页面信息 ── */
 .page-info {
   margin: 0 14px 10px;
@@ -396,20 +420,4 @@ body {
   padding: 0 16px 12px;
   font-size: 11px;
   color: var(--ink-faint);
-}
-
-.library-link {
-  border: none;
-  background: none;
-  padding: 0;
-  font-family: inherit;
-  font-size: 11px;
-  color: var(--ink-soft);
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.library-link:hover {
-  color: var(--accent-ink);
 }

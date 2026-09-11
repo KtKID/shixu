@@ -37,6 +37,7 @@ function mockNoActiveTab(): void {
 
 // 直接赋值的 mock 不会被 restoreAllMocks 还原，beforeEach 里显式还原
 const realTabsRemove = browser.tabs.remove;
+const realTabsCreate = browser.tabs.create;
 
 /** jsdom 的 window.close 会销毁 document，桩掉以便断言调用。 */
 function stubWindowClose() {
@@ -80,6 +81,7 @@ beforeEach(async () => {
   vi.restoreAllMocks();
   fakeBrowser.reset();
   browser.tabs.remove = realTabsRemove;
+  browser.tabs.create = realTabsCreate;
   await db.bookmarks.clear();
   await db.taxonomies.clear();
 });
@@ -583,8 +585,67 @@ describe('保存动作与横幅（feat05 场景1/2/6 + feat04 场景4 + feat06 �
   });
 });
 
-describe('底部库入口（feat07）', () => {
-  it('显示已入库条数，点击「打开导入器」进入导入页（场景1）', async () => {
+describe('顶栏主页入口（homepage feat01 场景1/2）', () => {
+  function mockTabsCreate(): ReturnType<typeof vi.fn> {
+    const createdTab: Browser.tabs.Tab = {
+      id: 9,
+      index: 0,
+      pinned: false,
+      highlighted: true,
+      windowId: 1,
+      active: true,
+      frozen: false,
+      incognito: false,
+      selected: true,
+      discarded: false,
+      autoDiscardable: true,
+      groupId: -1,
+      lastAccessed: 0,
+    };
+    const create = vi
+      .fn<(createProperties: Browser.tabs.CreateProperties) => Promise<Browser.tabs.Tab>>()
+      .mockResolvedValue(createdTab);
+    browser.tabs.create = create;
+    return create;
+  }
+
+  it('「已收藏」在新标签页整页打开主页「最近新增」，面板关闭且草稿不保存', async () => {
+    await stashTarget(WEB_TARGET);
+    mockNoActiveTab();
+    const close = stubWindowClose();
+    const create = mockTabsCreate();
+
+    render(<App />);
+    const textarea = await screen.findByRole('textbox');
+    await screen.findByRole('button', { name: '世界模型' });
+    fireEvent.change(textarea, { target: { value: '没保存的理由草稿' } });
+    fireEvent.click(screen.getByRole('button', { name: '世界模型' }));
+
+    fireEvent.click(screen.getByRole('button', { name: '已收藏' }));
+
+    expect(create).toHaveBeenCalledWith({ url: browser.runtime.getURL('/home.html#recent') });
+    await waitFor(() => expect(close).toHaveBeenCalled());
+    // 未保存的理由与点选不保留、也不自动保存
+    expect(await db.bookmarks.count()).toBe(0);
+  });
+
+  it('「设置」同样打开主页，但落在「网络连接」条目', async () => {
+    await stashTarget(WEB_TARGET);
+    mockNoActiveTab();
+    stubWindowClose();
+    const create = mockTabsCreate();
+
+    render(<App />);
+    await screen.findByText(WEB_TARGET.title);
+
+    fireEvent.click(screen.getByRole('button', { name: '设置' }));
+
+    expect(create).toHaveBeenCalledWith({ url: browser.runtime.getURL('/home.html#network') });
+  });
+});
+
+describe('底部库信息（homepage feat01 场景5）', () => {
+  it('显示「已入库 N 条」计数，不再出现「打开导入器」按钮', async () => {
     await stashTarget(WEB_TARGET);
     mockNoActiveTab();
     await db.bookmarks.add(
@@ -593,24 +654,21 @@ describe('底部库入口（feat07）', () => {
     await db.bookmarks.add(
       createBookmark(crypto.randomUUID(), { url: 'https://b.com/2', title: 'B' }),
     );
-    // openOptionsPage 保持 pending：真实实现随后会 window.close()，jsdom 下 close 会销毁 document
-    const openOptionsPage = vi.fn<() => Promise<void>>().mockReturnValue(new Promise(() => {}));
-    browser.runtime.openOptionsPage = openOptionsPage;
 
     render(<App />);
 
     expect(await screen.findByText('已入库 2 条')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: '打开导入器' }));
-    expect(openOptionsPage).toHaveBeenCalledOnce();
+    // 导入入口统一为主页左侧导航的「导入已有书签」条目
+    expect(screen.queryByRole('button', { name: '打开导入器' })).toBeNull();
   });
 
-  it('空库显示「已入库 0 条」，导入器链接可用（场景2）', async () => {
+  it('空库显示「已入库 0 条」，同样无导入器按钮', async () => {
     await stashTarget(WEB_TARGET);
     mockNoActiveTab();
 
     render(<App />);
 
     expect(await screen.findByText('已入库 0 条')).toBeTruthy();
-    expect(screen.getByRole('button', { name: '打开导入器' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '打开导入器' })).toBeNull();
   });
 });
