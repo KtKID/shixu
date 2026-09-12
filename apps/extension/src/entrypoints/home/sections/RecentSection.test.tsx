@@ -158,9 +158,9 @@ describe('每条收藏的展示内容（feat04 场景2）', () => {
       title: 'WorldDreamer: Interactive World Models',
       note: '重点看 action → next state 的设计',
       daysAgo: 2,
-      topics: ['世界模型', 'AI'],
-      types: ['GitHub 仓库'],
-      status: 'reading',
+      topics: ['会议纪要', '项目管理'],
+      types: ['数据表格'],
+      status: '进行中',
     });
 
     render(<RecentSection onNavigateImport={vi.fn()} />);
@@ -171,10 +171,10 @@ describe('每条收藏的展示内容（feat04 场景2）', () => {
     expect(card.textContent).toContain('2 天前');
     expect(card.textContent).toContain('重点看 action → next state 的设计');
     // 分类标签：主题 + 形态取值，与状态取值
-    expect(card.textContent).toContain('世界模型');
-    expect(card.textContent).toContain('AI');
-    expect(card.textContent).toContain('GitHub 仓库');
-    expect(card.textContent).toContain('Reading'); // 状态存小写，展示首字母大写
+    expect(card.textContent).toContain('会议纪要');
+    expect(card.textContent).toContain('项目管理');
+    expect(card.textContent).toContain('数据表格');
+    expect(card.textContent).toContain('进行中'); // 状态原样展示
     // 品牌卡（task-card-brand-icon）：无图标时小首字母色块 + 域名行，无大色块 .thumb
     expect(card.querySelector('.thumb')).toBeNull();
     const tile = card.querySelector('.brandtile');
@@ -303,22 +303,22 @@ describe('打开原网页（feat04 场景4）', () => {
 });
 
 describe('四维筛选集成（feat05 场景1）', () => {
-  it('选中主题「AI」后标题变「筛选结果 · N 条命中」，结果按收藏时间新到旧', async () => {
-    await seed({ url: 'https://a.example/1', title: '甲条', daysAgo: 0, topics: ['AI'] });
-    await seed({ url: 'https://b.example/2', title: '乙条', daysAgo: 1, topics: ['世界模型'] });
+  it('选中主题「项目管理」后标题变「筛选结果 · N 条命中」，结果按收藏时间新到旧', async () => {
+    await seed({ url: 'https://a.example/1', title: '甲条', daysAgo: 0, topics: ['项目管理'] });
+    await seed({ url: 'https://b.example/2', title: '乙条', daysAgo: 1, topics: ['会议纪要'] });
     await seed({
       url: 'https://c.example/3',
       title: '丙条',
       daysAgo: 2,
-      topics: ['AI', '世界模型'],
+      topics: ['项目管理', '会议纪要'],
     });
     await seed({ url: 'https://d.example/4', title: '丁条', daysAgo: 3 }); // 无主题
 
     render(<RecentSection onNavigateImport={vi.fn()} />);
     await screen.findByText('甲条');
 
-    // 主题「AI」与「世界模型」都在默认 taxonomy 候选里；选「AI」→ 甲、丙命中
-    fireEvent.click(screen.getByRole('button', { name: /^AI/ }));
+    // 主题「项目管理」与「会议纪要」都在默认 taxonomy 候选里；选「项目管理」→ 甲、丙命中
+    fireEvent.click(screen.getByRole('button', { name: /^项目管理/ }));
     expect(await screen.findByText('筛选结果 · 2 条命中')).toBeTruthy();
     expect(screen.queryByText('最近添加')).toBeNull();
     expect(screen.queryByText(/选择上方标签开始按维度筛选/)).toBeNull(); // 筛选态不再显示默认 hint
@@ -329,57 +329,62 @@ describe('四维筛选集成（feat05 场景1）', () => {
   });
 
   it('无筛选时不显示「清除全部筛选」，有筛选时出现', async () => {
-    await seed({ url: 'https://a.example/1', title: '甲条', daysAgo: 0, topics: ['AI'] });
+    await seed({ url: 'https://a.example/1', title: '甲条', daysAgo: 0, topics: ['项目管理'] });
 
     render(<RecentSection onNavigateImport={vi.fn()} />);
     await screen.findByText('甲条');
     expect(screen.queryByRole('button', { name: '清除全部筛选' })).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: /^AI/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^项目管理/ }));
     expect(await screen.findByRole('button', { name: '清除全部筛选' })).toBeTruthy();
   });
 });
 
 describe('状态筛选集成（feat05 场景3）', () => {
-  it('点状态「Reading」命中 reading 条；再点「Done」仅替换为 Done', async () => {
-    await seed({ url: 'https://r.example/1', title: '在读条', daysAgo: 0, status: 'reading' });
+  it('点状态「进行中」命中进行中条；再点「已完成」仅替换为已完成', async () => {
+    await seed({ url: 'https://r.example/1', title: '在读条', daysAgo: 0, status: '进行中' });
     await seed({ url: 'https://i.example/2', title: '新条', daysAgo: 1, status: 'inbox' });
-    await seed({ url: 'https://d.example/3', title: '完成条', daysAgo: 2, status: 'done' });
+    await seed({ url: 'https://d.example/3', title: '完成条', daysAgo: 2, status: '已完成' });
 
     render(<RecentSection onNavigateImport={vi.fn()} />);
     await screen.findByText('在读条');
 
-    fireEvent.click(screen.getByRole('button', { name: /^Reading/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^进行中/ }));
     expect(await screen.findByText('筛选结果 · 1 条命中')).toBeTruthy();
     expect(screen.getByText('在读条')).toBeTruthy();
     expect(screen.queryByText('新条')).toBeNull();
 
-    // 点选即替换：Reading → Done，不能同时选中两个状态
-    fireEvent.click(screen.getByRole('button', { name: /^Done/ }));
+    // 点选即替换：进行中 → 已完成，不能同时选中两个状态
+    fireEvent.click(screen.getByRole('button', { name: /^已完成/ }));
     expect(await screen.findByText('完成条')).toBeTruthy();
     expect(screen.queryByText('在读条')).toBeNull();
 
-    // 再点一次 Done 取消该条件，回到默认视图
-    fireEvent.click(screen.getByRole('button', { name: /^Done/ }));
+    // 再点一次 已完成 取消该条件，回到默认视图
+    fireEvent.click(screen.getByRole('button', { name: /^已完成/ }));
     expect(await screen.findByText('最近添加')).toBeTruthy();
   });
 });
 
 describe('主题「全部满足」切换集成（feat05 场景4）', () => {
   it('默认满足任一：单主题条也命中；切「全部满足」后只剩同时标两主题的条', async () => {
-    await seed({ url: 'https://only.example/1', title: '单主题条', daysAgo: 1, topics: ['AI'] });
+    await seed({
+      url: 'https://only.example/1',
+      title: '单主题条',
+      daysAgo: 1,
+      topics: ['项目管理'],
+    });
     await seed({
       url: 'https://both.example/2',
       title: '双主题条',
       daysAgo: 0,
-      topics: ['AI', '世界模型'],
+      topics: ['项目管理', '会议纪要'],
     });
 
     render(<RecentSection onNavigateImport={vi.fn()} />);
     await screen.findByText('双主题条');
 
-    fireEvent.click(screen.getByRole('button', { name: /^AI/ }));
-    fireEvent.click(screen.getByRole('button', { name: /^世界模型/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^项目管理/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^会议纪要/ }));
     expect(await screen.findByText('筛选结果 · 2 条命中')).toBeTruthy(); // 任一命中
 
     fireEvent.click(screen.getByRole('button', { name: '全部满足' }));
@@ -395,38 +400,38 @@ describe('主题「全部满足」切换集成（feat05 场景4）', () => {
 });
 
 describe('取消单个条件与清除全部（feat05 场景6）', () => {
-  it('再点一次「AI」仅取消该条件，形态「论文」保持；清除全部后回到默认视图', async () => {
+  it('再点一次「项目管理」仅取消该条件，形态「演示文稿」保持；清除全部后回到默认视图', async () => {
     await seed({
       url: 'https://a.example/1',
       title: '甲条',
       daysAgo: 0,
-      topics: ['AI'],
-      types: ['论文'],
+      topics: ['项目管理'],
+      types: ['演示文稿'],
     });
     await seed({
       url: 'https://c.example/2',
       title: '丙条',
       daysAgo: 2,
-      topics: ['AI'],
-      types: ['GitHub 仓库'],
+      topics: ['项目管理'],
+      types: ['数据表格'],
     });
     await seed({
       url: 'https://e.example/3',
       title: '戊条',
       daysAgo: 4,
-      topics: ['世界模型'],
-      types: ['论文'],
+      topics: ['会议纪要'],
+      types: ['演示文稿'],
     });
 
     render(<RecentSection onNavigateImport={vi.fn()} />);
     await screen.findByText('甲条');
 
-    fireEvent.click(screen.getByRole('button', { name: /^AI/ }));
-    fireEvent.click(screen.getByRole('button', { name: /^论文/ }));
-    expect(await screen.findByText('筛选结果 · 1 条命中')).toBeTruthy(); // 仅甲（AI 且 论文）
+    fireEvent.click(screen.getByRole('button', { name: /^项目管理/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^演示文稿/ }));
+    expect(await screen.findByText('筛选结果 · 1 条命中')).toBeTruthy(); // 仅甲（AI 且 演示文稿）
 
-    // 再点「AI」：仅取消该条件，论文保持 → 甲、戊命中
-    fireEvent.click(screen.getByRole('button', { name: /^AI/ }));
+    // 再点「项目管理」：仅取消该条件，演示文稿保持 → 甲、戊命中
+    fireEvent.click(screen.getByRole('button', { name: /^项目管理/ }));
     expect(await screen.findByText('筛选结果 · 2 条命中')).toBeTruthy();
     let titles = Array.from(document.querySelectorAll('.bcard .btitle')).map(
       (el) => el.textContent ?? '',
@@ -448,27 +453,27 @@ describe('取消单个条件与清除全部（feat05 场景6）', () => {
       url: 'https://a.example/1',
       title: '甲条',
       daysAgo: 0,
-      topics: ['AI'],
-      types: ['论文'],
+      topics: ['项目管理'],
+      types: ['演示文稿'],
     });
     await seed({
       url: 'https://c.example/2',
       title: '丙条',
       daysAgo: 2,
-      topics: ['AI', '世界模型'],
-      types: ['GitHub 仓库'],
+      topics: ['项目管理', '会议纪要'],
+      types: ['数据表格'],
     });
 
     render(<RecentSection onNavigateImport={vi.fn()} />);
     await screen.findByText('甲条');
 
-    fireEvent.click(screen.getByRole('button', { name: /^论文/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^演示文稿/ }));
     await screen.findByText('筛选结果 · 1 条命中');
-    // 形态=论文前提下：AI=1（甲）、世界模型=0（丙是 GitHub 仓库，计 0 仍显示）
+    // 形态=演示文稿前提下：AI=1（甲）、会议纪要=0（丙是 数据表格，计 0 仍显示）
     expect(
-      screen.getByRole('button', { name: /^AI/ }).querySelector('.fchip-count')?.textContent,
+      screen.getByRole('button', { name: /^项目管理/ }).querySelector('.fchip-count')?.textContent,
     ).toBe('1');
-    const worldChip = screen.getByRole('button', { name: /^世界模型/ });
+    const worldChip = screen.getByRole('button', { name: /^会议纪要/ });
     expect(worldChip.querySelector('.fchip-count')?.textContent).toBe('0'); // 计 0 仍显示且不消失
   });
 });
@@ -479,28 +484,30 @@ describe('无命中空态（feat05 场景7）', () => {
       url: 'https://a.example/1',
       title: '甲条',
       daysAgo: 0,
-      topics: ['AI'],
-      types: ['论文'],
+      topics: ['项目管理'],
+      types: ['演示文稿'],
     });
 
     render(<RecentSection onNavigateImport={vi.fn()} />);
     await screen.findByText('甲条');
 
-    // 主题「AI」+ 形态「GitHub 仓库」：甲不满足 GitHub 仓库 → 0 命中
-    fireEvent.click(screen.getByRole('button', { name: /^AI/ }));
-    fireEvent.click(screen.getByRole('button', { name: /^GitHub 仓库/ }));
+    // 主题「项目管理」+ 形态「数据表格」：甲不满足 数据表格 → 0 命中
+    fireEvent.click(screen.getByRole('button', { name: /^项目管理/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^数据表格/ }));
 
     expect(await screen.findByText('没有同时满足这些条件的收藏，试试减少一个维度。')).toBeTruthy();
     expect(screen.getByText('筛选结果 · 0 条命中')).toBeTruthy();
     expect(screen.queryByText('甲条')).toBeNull(); // 不显示列表
     // 已选条件保持可见（chips 仍按下）且未被自动清除
-    expect(screen.getByRole('button', { name: /^AI/ }).getAttribute('aria-pressed')).toBe('true');
-    expect(screen.getByRole('button', { name: /^GitHub 仓库/ }).getAttribute('aria-pressed')).toBe(
+    expect(screen.getByRole('button', { name: /^项目管理/ }).getAttribute('aria-pressed')).toBe(
+      'true',
+    );
+    expect(screen.getByRole('button', { name: /^数据表格/ }).getAttribute('aria-pressed')).toBe(
       'true',
     );
 
-    // 可撤销：点掉「GitHub 仓库」后恢复命中
-    fireEvent.click(screen.getByRole('button', { name: /^GitHub 仓库/ }));
+    // 可撤销：点掉「数据表格」后恢复命中
+    fireEvent.click(screen.getByRole('button', { name: /^数据表格/ }));
     expect(await screen.findByText('甲条')).toBeTruthy();
     expect(screen.getByText('筛选结果 · 1 条命中')).toBeTruthy();
   });
@@ -575,59 +582,59 @@ describe('搜索没有匹配（feat06 场景2）', () => {
 });
 
 describe('搜索与筛选叠加（feat06 场景3 UI 集成）', () => {
-  it('选中形态「论文」再搜「世界模型」只显示交集；清空搜索框回到仅按筛选显示', async () => {
+  it('选中形态「演示文稿」再搜「会议纪要」只显示交集；清空搜索框回到仅按筛选显示', async () => {
     await seed({
       url: 'https://a.example/1',
-      title: '世界模型论文',
+      title: '会议纪要演示文稿',
       daysAgo: 2,
-      types: ['论文'],
+      types: ['演示文稿'],
     });
     await seed({
       url: 'https://b.example/2',
-      title: '世界模型视频',
+      title: '会议纪要视频',
       daysAgo: 1,
       types: ['视频'],
     });
     await seed({
       url: 'https://c.example/3',
-      title: '别的论文',
+      title: '别的演示文稿',
       daysAgo: 0,
-      types: ['论文'],
+      types: ['演示文稿'],
     });
 
     render(<RecentSection onNavigateImport={vi.fn()} />);
-    await screen.findByText('世界模型论文');
+    await screen.findByText('会议纪要演示文稿');
 
-    fireEvent.click(screen.getByRole('button', { name: /^论文/ }));
-    expect(await screen.findByText('筛选结果 · 2 条命中')).toBeTruthy(); // 论文：世界模型论文 + 别的论文
+    fireEvent.click(screen.getByRole('button', { name: /^演示文稿/ }));
+    expect(await screen.findByText('筛选结果 · 2 条命中')).toBeTruthy(); // 演示文稿：会议纪要演示文稿 + 别的演示文稿
 
     fireEvent.change(screen.getByRole('textbox', { name: '搜索收藏' }), {
-      target: { value: '世界模型' },
+      target: { value: '会议纪要' },
     });
-    expect(await screen.findByText('1 条结果')).toBeTruthy(); // 交集：仅「世界模型论文」
-    expect(screen.getByText('世界模型论文')).toBeTruthy();
-    expect(screen.queryByText('世界模型视频')).toBeNull();
-    expect(screen.queryByText('别的论文')).toBeNull();
+    expect(await screen.findByText('1 条结果')).toBeTruthy(); // 交集：仅「会议纪要演示文稿」
+    expect(screen.getByText('会议纪要演示文稿')).toBeTruthy();
+    expect(screen.queryByText('会议纪要视频')).toBeNull();
+    expect(screen.queryByText('别的演示文稿')).toBeNull();
 
-    // 清空搜索框 → 回到仅按筛选显示（论文 2 条：被搜索挡掉的「别的论文」回来；
-    // 「世界模型视频」不满足论文筛选，仍不显示）
+    // 清空搜索框 → 回到仅按筛选显示（演示文稿 2 条：被搜索挡掉的「别的演示文稿」回来；
+    // 「会议纪要视频」不满足演示文稿筛选，仍不显示）
     fireEvent.change(screen.getByRole('textbox', { name: '搜索收藏' }), {
       target: { value: '' },
     });
-    expect(await screen.findByText('别的论文')).toBeTruthy();
-    expect(screen.getByText('世界模型论文')).toBeTruthy();
-    expect(screen.queryByText('世界模型视频')).toBeNull();
+    expect(await screen.findByText('别的演示文稿')).toBeTruthy();
+    expect(screen.getByText('会议纪要演示文稿')).toBeTruthy();
+    expect(screen.queryByText('会议纪要视频')).toBeNull();
     expect(screen.getByText('筛选结果 · 2 条命中')).toBeTruthy();
   });
 
   it('「清除全部筛选」把搜索词一并清空，回到默认「最近添加」视图', async () => {
-    await seed({ url: 'https://a.example/1', title: '甲条', daysAgo: 0, topics: ['AI'] });
+    await seed({ url: 'https://a.example/1', title: '甲条', daysAgo: 0, topics: ['项目管理'] });
     await seed({ url: 'https://b.example/2', title: '乙条', daysAgo: 1 });
 
     render(<RecentSection onNavigateImport={vi.fn()} />);
     await screen.findByText('甲条');
 
-    fireEvent.click(screen.getByRole('button', { name: /^AI/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^项目管理/ }));
     fireEvent.change(screen.getByRole('textbox', { name: '搜索收藏' }), {
       target: { value: '甲' },
     });
@@ -665,14 +672,14 @@ describe('「全部收藏」视图（feat07）', () => {
   });
 
   it('筛选与搜索行为与「最近新增」一致（场景2）', async () => {
-    await seed({ url: 'https://a.example/1', title: '甲条', daysAgo: 0, topics: ['AI'] });
-    await seed({ url: 'https://b.example/2', title: '乙条', daysAgo: 1, topics: ['世界模型'] });
-    await seed({ url: 'https://c.example/3', title: '丙条', daysAgo: 2, topics: ['AI'] });
+    await seed({ url: 'https://a.example/1', title: '甲条', daysAgo: 0, topics: ['项目管理'] });
+    await seed({ url: 'https://b.example/2', title: '乙条', daysAgo: 1, topics: ['会议纪要'] });
+    await seed({ url: 'https://c.example/3', title: '丙条', daysAgo: 2, topics: ['项目管理'] });
 
     render(<RecentSection variant="library" onNavigateImport={vi.fn()} />);
     await screen.findByText('甲条');
 
-    fireEvent.click(screen.getByRole('button', { name: /^AI/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^项目管理/ }));
     expect(await screen.findByText('筛选结果 · 2 条命中')).toBeTruthy();
     expect(screen.getByRole('button', { name: '清除全部筛选' })).toBeTruthy();
 
@@ -806,12 +813,12 @@ describe('收藏页头汇总行（sync-archive feat04）', () => {
 
   it('筛选与搜索时不改变汇总行：始终按整库口径统计', async () => {
     await login({ syncAgo: 5 });
-    await seed({ url: 'https://a.example/1', title: '甲条', daysAgo: 7, topics: ['AI'] });
+    await seed({ url: 'https://a.example/1', title: '甲条', daysAgo: 7, topics: ['项目管理'] });
     await seed({ url: 'https://b.example/2', title: '乙条', daysAgo: 3 });
     render(<RecentSection variant="library" onNavigateImport={vi.fn()} />);
 
     await screen.findByText('甲条');
-    fireEvent.click(screen.getByRole('button', { name: /^AI/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^项目管理/ }));
     expect(await screen.findByText('筛选结果 · 1 条命中')).toBeTruthy();
     expect(screen.getByText('2 条收藏 · 1 条待同步')).toBeTruthy(); // 整库口径不随命中数变化
   });

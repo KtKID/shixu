@@ -213,7 +213,7 @@ describe('导航分区内容沿用《设置页面》spec（feat02 场景1）', (
     render(<App initialSection="dimensions" />);
 
     expect(await screen.findByText('它讲什么？')).toBeTruthy();
-    expect(screen.getByText('世界模型')).toBeTruthy();
+    expect(screen.getByText('会议纪要')).toBeTruthy();
     expect(screen.getByRole('button', { name: '删除取值 inbox' })).toBeTruthy();
   });
 });

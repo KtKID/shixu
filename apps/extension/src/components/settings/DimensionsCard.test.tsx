@@ -52,15 +52,15 @@ describe('新增维度取值（feat06）', () => {
     fireEvent.change(topicInput(), { target: { value: '   ' } });
     fireEvent.click(screen.getByRole('button', { name: '添加主题取值' }));
     expect(screen.queryByText(/该取值已存在/)).toBeNull();
-    expect(screen.getAllByText('AI')).toHaveLength(1);
+    expect(screen.getAllByText('项目管理')).toHaveLength(1);
   });
 
   it('场景3：重复取值提示「该取值已存在」，不产生重复标签', async () => {
     await renderCard();
-    fireEvent.change(topicInput(), { target: { value: 'AI' } });
+    fireEvent.change(topicInput(), { target: { value: '项目管理' } });
     fireEvent.keyDown(topicInput(), { key: 'Enter' });
     expect(await screen.findByText('该取值已存在')).toBeTruthy();
-    expect(screen.getAllByText('AI')).toHaveLength(1);
+    expect(screen.getAllByText('项目管理')).toHaveLength(1);
   });
 
   it('场景4：首尾空格去除；超长（>30 字）提示「取值过长」不保存', async () => {
@@ -89,9 +89,9 @@ describe('新增维度取值（feat06）', () => {
 describe('删除维度取值（feat07）', () => {
   it('场景1：点「×」后取值从列表消失', async () => {
     await renderCard();
-    fireEvent.click(screen.getByRole('button', { name: '删除取值 Harness' }));
+    fireEvent.click(screen.getByRole('button', { name: '删除取值 会议纪要' }));
     await vi.waitFor(() => {
-      expect(screen.queryByText('Harness')).toBeNull();
+      expect(screen.queryByText('会议纪要')).toBeNull();
     });
   });
 
@@ -104,23 +104,23 @@ describe('删除维度取值（feat07）', () => {
 
   it('场景4：其余状态取值可自由删除，inbox 始终保留', async () => {
     await renderCard();
-    fireEvent.click(screen.getByRole('button', { name: '删除取值 reading' }));
+    fireEvent.click(screen.getByRole('button', { name: '删除取值 进行中' }));
     await vi.waitFor(() => {
-      expect(screen.queryByText('reading')).toBeNull();
+      expect(screen.queryByText('进行中')).toBeNull();
     });
-    fireEvent.click(screen.getByRole('button', { name: '删除取值 done' }));
+    fireEvent.click(screen.getByRole('button', { name: '删除取值 已完成' }));
     await vi.waitFor(() => {
-      expect(screen.queryByText('done')).toBeNull();
+      expect(screen.queryByText('已完成')).toBeNull();
     });
     expect(screen.getByText('inbox')).toBeTruthy();
   });
 
   it('错误提示在继续输入时清除', async () => {
     await renderCard();
-    fireEvent.change(topicInput(), { target: { value: 'AI' } });
+    fireEvent.change(topicInput(), { target: { value: '项目管理' } });
     fireEvent.keyDown(topicInput(), { key: 'Enter' });
     expect(await screen.findByText('该取值已存在')).toBeTruthy();
-    fireEvent.change(topicInput(), { target: { value: 'AI2' } });
+    fireEvent.change(topicInput(), { target: { value: '项目管理2' } });
     expect(screen.queryByText('该取值已存在')).toBeNull();
   });
 });

@@ -43,10 +43,10 @@ export type Taxonomy = z.infer<typeof TaxonomySchema>;
 
 /** 首次使用的默认取值集合（spec feat05 场景1）。 */
 export const DEFAULT_TAXONOMY_VALUES = {
-  topic: ['AI', 'Harness', '世界模型', '上下文工程'],
-  type: ['博客文章', 'GitHub 仓库', '论文', '文档'],
-  purpose: ['学习原理', '项目参考', '工具备用'],
-  status: ['inbox', 'reading', 'done'],
+  topic: ['项目管理', '会议纪要', '行业报告', '办公技巧'],
+  type: ['网页文章', '在线文档', '数据表格', '演示文稿'],
+  purpose: ['工作参考', '汇报材料', '模板备用'],
+  status: ['inbox', '进行中', '已完成'],
 } as const;
 
 /**

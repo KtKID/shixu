@@ -88,12 +88,12 @@ async function seedTaxonomy(overrides: Partial<Omit<Taxonomy, 'updatedAt'>>) {
   await db.taxonomies.put({ id: 'local', taxonomy });
 }
 
-/** 渲染可收藏面板并等四维取值就绪（默认集合首个主题取值为「世界模型」）；返回 render 结果供 unmount 模拟重开。 */
+/** 渲染可收藏面板并等四维取值就绪（默认集合首个主题取值为「会议纪要」）；返回 render 结果供 unmount 模拟重开。 */
 async function renderPanelWithDims() {
   await stashTarget(WEB_TARGET);
   mockNoActiveTab();
   const view = render(<App />);
-  await screen.findByRole('button', { name: '世界模型' });
+  await screen.findByRole('button', { name: '会议纪要' });
   return view;
 }
 
@@ -233,13 +233,13 @@ describe('四维点选（feat04）', () => {
 
     render(<App />);
 
-    expect(await screen.findByRole('button', { name: '世界模型' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: '上下文工程' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: '论文' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: '学习原理' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: '会议纪要' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '办公技巧' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '演示文稿' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '工作参考' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'inbox' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'reading' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'done' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '进行中' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '已完成' })).toBeTruthy();
   });
 
   it('渲染的是与「设置」共享的那套取值，面板内有就地增删入口（场景3，feat08 增补）', async () => {
@@ -248,7 +248,7 @@ describe('四维点选（feat04）', () => {
     await seedTaxonomy({
       topic: ['RAG'],
       type: ['视频'],
-      purpose: ['写论文'],
+      purpose: ['写演示文稿'],
       status: [DEFAULT_STATUS, '归档'],
     });
 
@@ -256,9 +256,9 @@ describe('四维点选（feat04）', () => {
 
     expect(await screen.findByRole('button', { name: 'RAG' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '视频' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: '写论文' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '写演示文稿' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '归档' })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: '世界模型' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '会议纪要' })).toBeNull();
     // 面板可就地增删取值（feat08）：修改区与删除按钮都收进修改模式（场景7/8 修订）
     expect(document.querySelector('.dims .chip-add')).toBeNull();
     expect(screen.queryByRole('button', { name: '删除取值 RAG' })).toBeNull();
@@ -274,8 +274,8 @@ describe('四维点选（feat04）', () => {
 
     render(<App />);
 
-    const world = await screen.findByRole('button', { name: '世界模型' });
-    const ai = screen.getByRole('button', { name: 'AI' });
+    const world = await screen.findByRole('button', { name: '会议纪要' });
+    const ai = screen.getByRole('button', { name: '项目管理' });
     fireEvent.click(world);
     expect(world).toHaveProperty('className', expect.stringContaining('on'));
     fireEvent.click(ai);
@@ -293,8 +293,8 @@ describe('四维点选（feat04）', () => {
     render(<App />);
 
     const inbox = await screen.findByRole('button', { name: 'inbox' });
-    const reading = screen.getByRole('button', { name: 'reading' });
-    const done = screen.getByRole('button', { name: 'done' });
+    const reading = screen.getByRole('button', { name: '进行中' });
+    const done = screen.getByRole('button', { name: '已完成' });
     expect(inbox.classList.contains('on')).toBe(true);
     expect(reading.classList.contains('on')).toBe(false);
 
@@ -314,7 +314,7 @@ describe('四维点选（feat04）', () => {
 
     render(<App />);
 
-    const chip = await screen.findByRole('button', { name: '世界模型' });
+    const chip = await screen.findByRole('button', { name: '会议纪要' });
     expect(chip).toHaveProperty('disabled', true);
     fireEvent.click(chip);
     expect(chip.classList.contains('on')).toBe(false);
@@ -369,7 +369,7 @@ describe('面板内就地增删取值（feat08，增删均在修改模式下）'
     enterEditMode();
 
     const input = screen.getByRole('textbox', { name: '新主题取值' });
-    fireEvent.change(input, { target: { value: '世界模型' } });
+    fireEvent.change(input, { target: { value: '会议纪要' } });
     fireEvent.click(screen.getByRole('button', { name: '添加主题取值' }));
 
     expect(await screen.findByText('该取值已存在')).toBeTruthy();
@@ -394,20 +394,20 @@ describe('面板内就地增删取值（feat08，增删均在修改模式下）'
     await renderPanelWithDims();
 
     enterEditMode();
-    fireEvent.click(screen.getByRole('button', { name: '删除取值 世界模型' }));
+    fireEvent.click(screen.getByRole('button', { name: '删除取值 会议纪要' }));
 
-    await waitFor(() => expect(screen.queryByRole('button', { name: '世界模型' })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('button', { name: '会议纪要' })).toBeNull());
     const row = await db.taxonomies.get('local');
-    expect(row?.taxonomy.topic).not.toContain('世界模型');
+    expect(row?.taxonomy.topic).not.toContain('会议纪要');
   });
 
   it('场景3：删除处于选中态的多选取值 → 选中同时取消', async () => {
     await renderPanelWithDims();
 
-    fireEvent.click(screen.getByRole('button', { name: '世界模型' }));
+    fireEvent.click(screen.getByRole('button', { name: '会议纪要' }));
     expect(document.querySelectorAll('.dims .chip.on .chip-btn').length).toBeGreaterThan(1);
     enterEditMode();
-    fireEvent.click(screen.getByRole('button', { name: '删除取值 世界模型' }));
+    fireEvent.click(screen.getByRole('button', { name: '删除取值 会议纪要' }));
 
     await waitFor(() => {
       // 仅剩默认选中的 inbox
@@ -420,15 +420,15 @@ describe('面板内就地增删取值（feat08，增删均在修改模式下）'
   it('场景3：删除当前选中的状态 → 状态回退选中 Inbox', async () => {
     await renderPanelWithDims();
 
-    fireEvent.click(screen.getByRole('button', { name: 'reading' }));
-    expect(screen.getByRole('button', { name: 'reading' }).classList.contains('on')).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: '进行中' }));
+    expect(screen.getByRole('button', { name: '进行中' }).classList.contains('on')).toBe(true);
     enterEditMode();
-    fireEvent.click(screen.getByRole('button', { name: '删除取值 reading' }));
+    fireEvent.click(screen.getByRole('button', { name: '删除取值 进行中' }));
 
     const inbox = await screen.findByRole('button', { name: 'inbox' });
     await waitFor(() => {
       expect(inbox.classList.contains('on')).toBe(true);
-      expect(screen.queryByRole('button', { name: 'reading' })).toBeNull();
+      expect(screen.queryByRole('button', { name: '进行中' })).toBeNull();
     });
   });
 
@@ -473,7 +473,7 @@ describe('面板内就地增删取值（feat08，增删均在修改模式下）'
     mockNoActiveTab();
     render(<App />);
     await screen.findByText('此页面无法收藏');
-    await screen.findByRole('button', { name: '世界模型' });
+    await screen.findByRole('button', { name: '会议纪要' });
 
     // 默认无修改区；「修改」切换本身可用（视图切换非数据操作）
     expect(document.querySelector('.dims .chip-add')).toBeNull();
@@ -484,7 +484,7 @@ describe('面板内就地增删取值（feat08，增删均在修改模式下）'
     expect(inputs).toHaveLength(4);
     inputs.forEach((input) => expect(input.disabled).toBe(true));
     expect(screen.getByRole('button', { name: '添加主题取值' })).toHaveProperty('disabled', true);
-    expect(screen.getByRole('button', { name: '删除取值 世界模型' })).toHaveProperty(
+    expect(screen.getByRole('button', { name: '删除取值 会议纪要' })).toHaveProperty(
       'disabled',
       true,
     );
@@ -495,7 +495,7 @@ describe('面板内就地增删取值（feat08，增删均在修改模式下）'
 
     expect(screen.getByRole('button', { name: '修改' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: '完成' })).toBeNull();
-    expect(screen.queryByRole('button', { name: '删除取值 世界模型' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '删除取值 会议纪要' })).toBeNull();
     expect(screen.queryByRole('button', { name: '删除取值 inbox' })).toBeNull();
     expect(document.querySelector('.dims .chip-add')).toBeNull();
   });
@@ -506,13 +506,13 @@ describe('面板内就地增删取值（feat08，增删均在修改模式下）'
     enterEditMode();
     expect(screen.queryByRole('button', { name: '修改' })).toBeNull();
     expect(screen.getByRole('button', { name: '完成' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: '删除取值 世界模型' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '删除取值 会议纪要' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '删除取值 inbox' })).toBeTruthy();
     expect(document.querySelectorAll('.dims .chip-add input')).toHaveLength(4);
 
     fireEvent.click(screen.getByRole('button', { name: '完成' }));
     expect(screen.getByRole('button', { name: '修改' })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: '删除取值 世界模型' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '删除取值 会议纪要' })).toBeNull();
     expect(screen.queryByRole('button', { name: '删除取值 inbox' })).toBeNull();
     expect(document.querySelector('.dims .chip-add')).toBeNull();
   });
@@ -522,7 +522,7 @@ describe('面板内就地增删取值（feat08，增删均在修改模式下）'
 
     enterEditMode();
     fireEvent.change(screen.getByRole('textbox', { name: '新主题取值' }), {
-      target: { value: '世界模型' },
+      target: { value: '会议纪要' },
     });
     fireEvent.click(screen.getByRole('button', { name: '添加主题取值' }));
     expect(await screen.findByText('该取值已存在')).toBeTruthy();
@@ -541,7 +541,7 @@ describe('面板内就地增删取值（feat08，增删均在修改模式下）'
     // popup 每次打开都是全新页面加载：重开 = 全新挂载，不延续上次的修改模式
     await renderPanelWithDims();
     expect(screen.getByRole('button', { name: '修改' })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: '删除取值 世界模型' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '删除取值 会议纪要' })).toBeNull();
   });
 
   it('不变量（smoke）：面板新增的取值落进与设置共享的本地 taxonomy', async () => {
@@ -582,7 +582,12 @@ describe('重复收藏预填（feat06 场景1）', () => {
       title: '旧标题',
       note: '旧理由',
     });
-    existing.classification = { topics: ['AI'], types: ['论文'], purposes: [], status: 'reading' };
+    existing.classification = {
+      topics: ['项目管理'],
+      types: ['演示文稿'],
+      purposes: [],
+      status: '进行中',
+    };
     return { ...existing, ...overrides };
   }
 
@@ -595,11 +600,11 @@ describe('重复收藏预填（feat06 场景1）', () => {
 
     expect(await screen.findByText('已收藏过 · 保存将更新')).toBeTruthy();
     expect(screen.getByRole('textbox', { name: /为什么收藏/ })).toHaveProperty('value', '旧理由');
-    expect(screen.getByRole('button', { name: 'AI' }).classList.contains('on')).toBe(true);
-    expect(screen.getByRole('button', { name: '论文' }).classList.contains('on')).toBe(true);
-    expect(screen.getByRole('button', { name: '学习原理' }).classList.contains('on')).toBe(false);
+    expect(screen.getByRole('button', { name: '项目管理' }).classList.contains('on')).toBe(true);
+    expect(screen.getByRole('button', { name: '演示文稿' }).classList.contains('on')).toBe(true);
+    expect(screen.getByRole('button', { name: '工作参考' }).classList.contains('on')).toBe(false);
     // 状态选中其当前状态
-    expect(screen.getByRole('button', { name: 'reading' }).classList.contains('on')).toBe(true);
+    expect(screen.getByRole('button', { name: '进行中' }).classList.contains('on')).toBe(true);
     expect(screen.getByRole('button', { name: 'inbox' }).classList.contains('on')).toBe(false);
   });
 
@@ -823,10 +828,10 @@ describe('保存动作与横幅（feat05 场景1/2/6 + feat04 场景4 + feat06 �
   it('横幅状态名跟随当前选中的状态取值', async () => {
     await renderCapturable();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'reading' }));
+    fireEvent.click(await screen.findByRole('button', { name: '进行中' }));
     fireEvent.click(screen.getByRole('button', { name: '仅保存' }));
 
-    expect(await screen.findByText('✓ 已存入 Reading')).toBeTruthy();
+    expect(await screen.findByText('✓ 已存入 进行中')).toBeTruthy();
   });
 
   it('已收藏过页面保存为更新：不新增条目，理由与四维覆盖（feat06 场景2 集成）', async () => {
@@ -842,7 +847,7 @@ describe('保存动作与横幅（feat05 场景1/2/6 + feat04 场景4 + feat06 �
     fireEvent.change(screen.getByRole('textbox', { name: /为什么收藏/ }), {
       target: { value: '更新的理由' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'AI' }));
+    fireEvent.click(screen.getByRole('button', { name: '项目管理' }));
     fireEvent.click(screen.getByRole('button', { name: '仅保存' }));
 
     await screen.findByText('✓ 已存入 Inbox');
@@ -850,7 +855,7 @@ describe('保存动作与横幅（feat05 场景1/2/6 + feat04 场景4 + feat06 �
     expect(rows).toHaveLength(1);
     expect(rows[0]?.id).toBe(existing.id);
     expect(rows[0]?.note).toBe('更新的理由');
-    expect(rows[0]?.classification.topics).toEqual(['AI']);
+    expect(rows[0]?.classification.topics).toEqual(['项目管理']);
   });
 });
 
@@ -886,9 +891,9 @@ describe('顶栏主页入口（homepage feat01 场景1/2）', () => {
 
     render(<App />);
     const textarea = await screen.findByRole('textbox', { name: /为什么收藏/ });
-    await screen.findByRole('button', { name: '世界模型' });
+    await screen.findByRole('button', { name: '会议纪要' });
     fireEvent.change(textarea, { target: { value: '没保存的理由草稿' } });
-    fireEvent.click(screen.getByRole('button', { name: '世界模型' }));
+    fireEvent.click(screen.getByRole('button', { name: '会议纪要' }));
 
     fireEvent.click(screen.getByRole('button', { name: '已收藏' }));
 
