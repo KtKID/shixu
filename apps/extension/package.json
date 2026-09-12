@@ -6,8 +6,10 @@
   "scripts": {
     "postinstall": "wxt prepare",
     "dev": "wxt",
-    "build": "wxt build -b chrome",
+    "build": "wxt build -b chrome && wxt build -b firefox",
+    "build:chrome": "wxt build -b chrome",
     "build:firefox": "wxt build -b firefox",
+    "pack:firefox": "wxt zip -b firefox && for f in dist/*-firefox.zip; do cp \"$f\" dist/x-threadpick.xpi; done",
     "typecheck": "wxt prepare && tsc --noEmit",
     "test": "vitest run",
     "check": "pnpm typecheck && pnpm test"

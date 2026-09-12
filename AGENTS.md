@@ -11,7 +11,7 @@
 - Monorepo 已初始化（pnpm workspaces），尚未 git 化。
 - `packages/shared` — zod schema 唯一真源（Bookmark / View / auth / sync / normalizeUrl）。
 - `apps/server` — Hono + Drizzle + better-sqlite3；auth（JWT 30 天 + `/auth/register` 自助注册）+ sync（增量拉推、LWW）+ CLI（`pnpm cli create-user|set-password`）+ 冒烟脚本（`pnpm smoke` / `pnpm smoke:register`）。better-sqlite3 驱动是**同步 API**，查询不加 await。注意：`pnpm start`/`pnpm dev` 不自动加载 `.env`，需 `tsx --env-file=.env` 或先 export JWT_SECRET。
-- `apps/extension` — WXT 0.21 + React + Dexie；已完成切片：popup 入口 + options 导入器（getTree 展平 → 搜索勾选 → 规范化去重 → 入库 Inbox）、设置页（服务器连接/登录/注册/分类维度）、同步客户端（`src/db/sync.ts`：手动「同步收藏」+ 结果计数 + 按账号自动同步开关，写操作经 `db/autosync.ts` 防抖触发）。React 集成包名是 `@wxt-dev/module-react`（非 @wxt-dev/react）。构建：`pnpm build:ext` / `build:ext:firefox`。
+- `apps/extension` — WXT 0.21 + React + Dexie；已完成切片：popup 入口 + options 导入器（getTree 展平 → 搜索勾选 → 规范化去重 → 入库 Inbox）、设置页（服务器连接/登录/注册/分类维度）、同步客户端（`src/db/sync.ts`：手动「同步收藏」+ 结果计数 + 按账号自动同步开关，写操作经 `db/autosync.ts` 防抖触发）。React 集成包名是 `@wxt-dev/module-react`（非 @wxt-dev/react）。构建：`pnpm build:ext`（同时构建 Chrome MV3 + Firefox MV2，产物在 `apps/extension/dist/`）；单独构建用 `build:ext:firefox`（扩展包内还有 `build:chrome`）；Firefox 打包签名用 zip/xpi：`pnpm pack:ext:firefox` → `dist/x-threadpick.xpi`（未签名，正式安装需 `web-ext sign` 走 AMO）。
 - 环境要求：Node ≥20；`pnpm check` 全绿是提交底线。
 - 待做：批量导入 → 四维筛选 → View → Capture 弹窗。
 

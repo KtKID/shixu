@@ -7,3 +7,4 @@ build
 data
 pnpm-lock.yaml
 *.db
+.zcode
