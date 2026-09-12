@@ -8,6 +8,7 @@ import {
   type Taxonomy,
 } from '@x-threadpick/shared';
 import { accountKey, loadSettings } from './settings';
+import type { IconResourceRow } from './resources';
 
 /**
  * 多库架构（sync-archive feat01）：
@@ -43,6 +44,7 @@ export class LibraryDB extends Dexie {
   bookmarks!: EntityTable<Bookmark, 'id'>;
   taxonomies!: EntityTable<TaxonomyRow, 'id'>;
   meta!: EntityTable<MetaRow, 'key'>;
+  resources!: EntityTable<IconResourceRow, 'path'>;
 
   constructor(name: string) {
     super(name);
@@ -53,6 +55,13 @@ export class LibraryDB extends Dexie {
       bookmarks: 'id, urlNormalized, updatedAt',
       taxonomies: 'id',
       meta: 'key',
+    });
+    // v4 新增 resources 表（task-card-icon-resource：图标本体 data URL，本地统一资源库，不进同步）
+    this.version(4).stores({
+      bookmarks: 'id, urlNormalized, updatedAt',
+      taxonomies: 'id',
+      meta: 'key',
+      resources: 'path',
     });
   }
 }

@@ -34,7 +34,7 @@
 
 - **双浏览器**：Chrome（MV3）+ Firefox。用 WXT 框架一套代码两份构建（`wxt build --browser firefox`），它自动处理 background 差异（Firefox 是 event page 而非 service worker）。API 调用统一走 `webextension-polyfill` 风格的 `browser.*`。Side Panel 需按浏览器分叉：Chrome 用 `sidePanel` API，Firefox 用 `sidebar_action`。
 - `chrome.bookmarks` / `browser.bookmarks` 是树形单父节点结构、无标签字段，且两个浏览器都有该 API → 原生书签**只作导入来源**（getTree + search）；多维属性与视图存扩展本地库并同步到后端。
-- **前后端协议用 zod 定义**，schema 放 monorepo 共享包（如 `packages/shared`），前后端共用同一份类型，禁止两端各写一份。同步对象：bookmark（url / title / summary / note / 四维属性 / 时间戳）与 view。
+- **前后端协议用 zod 定义**，schema 放 monorepo 共享包（如 `packages/shared`），前后端共用同一份类型，禁止两端各写一份。同步对象：bookmark（url / title / summary / note / iconUrl / 四维属性 / 时间戳）与 view。
 - 认证：账号密码（email + password），JWT access/refresh token，token 存 `browser.storage.local`。只有账号密码：不做 OAuth / 找回密码 / 邮箱验证；账号可由扩展设置页「创建账号」注册（密码需英文+数字且 >5 位，2026-09-11 起开放，见 settings spec feat09），也可由 server 包 CLI 创建（`cli create-user` / `cli set-password`）；密码 argon2/bcrypt 哈希、JWT 密钥走环境变量、部署 HTTPS；access token 有效期放宽到 30 天，不做 refresh 轮换。
 - **Backend 是普通 HTTP JSON API**（REST，Hono + Drizzle + SQLite），不是 CLI / GraphQL / gRPC；CLI 只作 server 包内部管理命令。**架构是 offline-first**：扩展本地 IndexedDB 是主库、日常读写全在本地，后端只是同步/备份层，挂了不影响使用。
 - 同步对象带 `updatedAt` + 软删除 tombstone，客户端增量拉取（`?since=`）+ 推送本地变更，冲突 last-write-wins。

@@ -546,15 +546,40 @@ body {
     0 4px 8px rgba(62, 48, 32, 0.06),
     0 14px 32px rgba(62, 48, 32, 0.1);
 }
-.thumb {
-  height: 96px;
+/* 品牌卡（task-card-brand-icon）：图标/小色块 + 域名行取代大首字母色块，
+   色块收敛为 22px 身份标识，不再占据卡片顶部。 */
+.brandline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.brandicon {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  flex: none;
+  box-shadow: 0 1px 2px rgba(62, 48, 32, 0.12);
+}
+.brandtile {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32px;
+  font-size: 12px;
   color: rgba(255, 250, 240, 0.92);
   font-family: Georgia, serif;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+}
+.bdomain {
+  font-size: 11px;
+  color: var(--ink-faint);
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .g1 {
   background: linear-gradient(120deg, #8a6f4d, #b5502a);

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { importBookmarks, type ImportOutcome } from '../../../db/bookmarks';
+import { ensureBookmarkIcons } from '../../../db/icons';
 import {
   flattenBookmarkTree,
   type FlatBookmark,
@@ -71,6 +72,12 @@ export default function ImportSection() {
         setMessage(
           `导入 ${outcome.imported} 条；已收藏过 ${outcome.skipped} 条；无效 URL ${outcome.invalid} 条`,
         );
+        // 图标异步回填（task-card-brand-icon）：不阻塞导入反馈
+        if (outcome.imported > 0) {
+          ensureBookmarkIcons().catch((err: unknown) =>
+            console.error('[import] 图标回填失败', err),
+          );
+        }
       })
       .catch((err: unknown) => setMessage(`导入失败：${errorMessage(err)}`))
       .finally(() => setImporting(false));

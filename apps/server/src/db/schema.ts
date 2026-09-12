@@ -28,6 +28,7 @@ export const bookmarks = sqliteTable(
     title: text('title').notNull(),
     summary: text('summary'),
     note: text('note'),
+    iconUrl: text('icon_url'),
     topics: text('topics', { mode: 'json' }).$type<string[]>().notNull(),
     types: text('types', { mode: 'json' }).$type<string[]>().notNull(),
     purposes: text('purposes', { mode: 'json' }).$type<string[]>().notNull(),

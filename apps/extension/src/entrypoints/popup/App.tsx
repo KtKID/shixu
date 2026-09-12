@@ -6,6 +6,7 @@ import {
   type Taxonomy,
 } from '@x-threadpick/shared';
 import { getActiveBookmarks, getBookmarkByUrl, captureBookmark } from '../../db/bookmarks';
+import { ensureBookmarkIcons } from '../../db/icons';
 import { addTaxonomyValue, getTaxonomy, removeTaxonomyValue } from '../../db/taxonomy';
 import { subscribeLibrarySwitch } from '../../db/library';
 import { isCapturableUrl, resolveCaptureTarget } from '../../lib/capture-invoke';
@@ -258,6 +259,8 @@ export default function App(props: CapturePanelProps) {
           status: selection.status,
         },
       });
+      // 图标异步回填（task-card-brand-icon）：不阻塞保存链路
+      ensureBookmarkIcons().catch((err: unknown) => console.error('[capture] 图标回填失败', err));
       if (closeTab && target.pinned) {
         setBanner('✓ 已保存；固定标签页未关闭');
       } else if (closeTab) {

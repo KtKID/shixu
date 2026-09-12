@@ -54,6 +54,36 @@ describe('BookmarkSchema · Status 为用户自定义单选取值', () => {
   });
 });
 
+describe('BookmarkSchema · iconUrl 站点图标地址（task-card-brand-icon）', () => {
+  it('接受 http(s) 图标地址或 null', () => {
+    expect(
+      BookmarkSchema.safeParse({
+        ...base,
+        classification: classification('inbox'),
+        iconUrl: 'https://example.com/favicon.ico',
+      }).success,
+    ).toBe(true);
+    expect(
+      BookmarkSchema.safeParse({ ...base, classification: classification('inbox'), iconUrl: null })
+        .success,
+    ).toBe(true);
+  });
+
+  it('无 iconUrl 字段的旧版记录解析成功且默认 null（存量数据向后兼容）', () => {
+    const r = BookmarkSchema.safeParse({ ...base, classification: classification('inbox') });
+    expect(r.success).toBe(true);
+    expect(r.success ? r.data.iconUrl : 'x').toBeNull();
+  });
+
+  it('createBookmark 新书签默认 iconUrl=null（图标异步回填）', () => {
+    const bookmark = createBookmark(crypto.randomUUID(), {
+      url: 'https://example.com/new3',
+      title: 't',
+    });
+    expect(bookmark.iconUrl).toBeNull();
+  });
+});
+
 describe('ClassificationSchema · 形态（Type）为多选取值（capture spec feat04 契约）', () => {
   it('接受多个形态（如 论文 + 文档）', () => {
     const r = BookmarkSchema.safeParse({

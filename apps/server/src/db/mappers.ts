@@ -23,6 +23,7 @@ export function rowToBookmark(row: BookmarkRow): Bookmark {
     title: row.title,
     summary: row.summary,
     note: row.note,
+    iconUrl: row.iconUrl,
     classification: {
       topics: row.topics,
       types: row.types,
@@ -45,6 +46,7 @@ export function bookmarkToRow(bookmark: Bookmark, userId: string): BookmarkRow {
     title: parsed.title,
     summary: parsed.summary,
     note: parsed.note,
+    iconUrl: parsed.iconUrl,
     topics: parsed.classification.topics,
     types: parsed.classification.types,
     purposes: parsed.classification.purposes,

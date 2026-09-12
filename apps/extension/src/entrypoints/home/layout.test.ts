@@ -31,10 +31,14 @@ describe('主页布局契约（task-home-layout）', () => {
     expect(match).not.toBeNull();
   });
 
-  it('卡片首字母色块加高（.thumb 高度 ≥ 96px）', () => {
-    const match = css.match(/\.thumb\s*\{[^}]*height:\s*(\d+)px/);
-    expect(match).not.toBeNull();
-    expect(Number(match?.[1])).toBeGreaterThanOrEqual(96);
+  it('品牌卡（task-card-brand-icon）：小图标/小色块 ≤ 24px，大首字母色块 .thumb 已移除', () => {
+    const icon = css.match(/\.brandicon\s*\{[^}]*width:\s*(\d+)px/);
+    expect(icon).not.toBeNull();
+    expect(Number(icon?.[1])).toBeLessThanOrEqual(24);
+    const tile = css.match(/\.brandtile\s*\{[^}]*width:\s*(\d+)px/);
+    expect(tile).not.toBeNull();
+    expect(Number(tile?.[1])).toBeLessThanOrEqual(24);
+    expect(css.match(/\.thumb\s*\{/)).toBeNull();
   });
 
   it('设置卡片样式不外泄：cards.css 的 input/label 元素选择器都限定在 .card 内', () => {

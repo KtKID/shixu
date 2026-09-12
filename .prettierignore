@@ -8,3 +8,6 @@ data
 pnpm-lock.yaml
 *.db
 .zcode
+
+# 自包含设计稿（base64 内嵌图片，非手写维护格式）
+docs/assets/卡片备选方案.html

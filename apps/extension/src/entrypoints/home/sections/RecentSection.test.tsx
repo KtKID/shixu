@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { createBookmark, type Bookmark, type Session } from '@x-threadpick/shared';
 import {
@@ -9,7 +9,15 @@ import {
   type LibraryDB,
 } from '../../../db/library';
 import { recordServerLogin } from '../../../db/settings';
+import { ensureBookmarkIcons } from '../../../db/icons';
+import { iconPathFor, putResource } from '../../../db/resources';
 import RecentSection from './RecentSection';
+
+/** 挂载时的图标回填不打真实网络（task-card-brand-icon）；回填行为本身在 db/icons.test.ts 覆盖。 */
+vi.mock('../../../db/icons', () => ({
+  ensureBookmarkIcons: vi.fn(() => Promise.resolve(0)),
+  resetIconAttempts: vi.fn(),
+}));
 
 let db: LibraryDB;
 
@@ -30,6 +38,7 @@ interface SeedInput {
   topics?: string[];
   types?: string[];
   status?: string;
+  iconUrl?: string;
 }
 
 /** 按给定天数偏移 createdAt/UpdatedAt 播种一条书签（收藏时间 = createdAt）。 */
@@ -46,6 +55,7 @@ async function seed(input: SeedInput): Promise<void> {
     purposes: [],
     status: input.status ?? 'inbox',
   };
+  if (input.iconUrl !== undefined) bookmark.iconUrl = input.iconUrl;
   await db.bookmarks.add(bookmark);
 }
 
@@ -120,9 +130,14 @@ describe('相对时间边界（feat04 场景2 / T4）', () => {
 
     render(<RecentSection onNavigateImport={vi.fn()} />);
 
-    expect(await screen.findByText(/a\.example · 今天/)).toBeTruthy();
-    expect(screen.getByText(/b\.example · 昨天/)).toBeTruthy();
-    expect(screen.getByText(/c\.example · 2 天前/)).toBeTruthy();
+    // 品牌卡（task-card-brand-icon）：域名在品牌行、时间在 meta 行，同卡各自存在
+    await screen.findByText('今天条');
+    const cards = Array.from(document.querySelectorAll('.bcard'));
+    const byDomain = (d: string) =>
+      cards.find((c) => c.querySelector('.bdomain')?.textContent === d);
+    expect(byDomain('a.example')?.querySelector('.bmeta')?.textContent).toContain('今天');
+    expect(byDomain('b.example')?.querySelector('.bmeta')?.textContent).toContain('昨天');
+    expect(byDomain('c.example')?.querySelector('.bmeta')?.textContent).toContain('2 天前');
   });
 
   it('跨月的日期按自然日差计算（8月31日收藏 → 2 天前）', async () => {
@@ -130,12 +145,14 @@ describe('相对时间边界（feat04 场景2 / T4）', () => {
 
     render(<RecentSection onNavigateImport={vi.fn()} />);
 
-    expect(await screen.findByText(/m\.example · 2 天前/)).toBeTruthy();
+    const card = await screen.findByRole('link');
+    expect(card.querySelector('.bdomain')?.textContent).toBe('m.example');
+    expect(card.querySelector('.bmeta')?.textContent).toContain('2 天前');
   });
 });
 
 describe('每条收藏的展示内容（feat04 场景2）', () => {
-  it('卡片含首字母色块、标题、来源域名、理由与分类标签（主题/形态取值与状态）', async () => {
+  it('品牌卡：小图标（无图标时小首字母色块）+ 域名行、标题、时间、理由与分类标签', async () => {
     await seed({
       url: 'https://github.com/x/worlddreamer',
       title: 'WorldDreamer: Interactive World Models',
@@ -158,20 +175,85 @@ describe('每条收藏的展示内容（feat04 场景2）', () => {
     expect(card.textContent).toContain('AI');
     expect(card.textContent).toContain('GitHub 仓库');
     expect(card.textContent).toContain('Reading'); // 状态存小写，展示首字母大写
-    // 首字母色块：标题首字母大写
-    const thumb = card.querySelector('.thumb');
-    expect(thumb?.textContent).toBe('W');
-    expect(thumb?.className).toMatch(/g[1-6]/);
+    // 品牌卡（task-card-brand-icon）：无图标时小首字母色块 + 域名行，无大色块 .thumb
+    expect(card.querySelector('.thumb')).toBeNull();
+    const tile = card.querySelector('.brandtile');
+    expect(tile?.textContent).toBe('W');
+    expect(tile?.className).toMatch(/g[1-6]/);
+    expect(card.querySelector('.bdomain')?.textContent).toBe('github.com');
   });
 
-  it('标题为空时回退展示网址，色块取网址首字母', async () => {
+  it('有 iconUrl 的收藏卡片渲染站点图标 img，不出首字母色块', async () => {
+    await seed({
+      url: 'https://kimi.com/en',
+      title: 'Kimi',
+      daysAgo: 0,
+      iconUrl: 'https://kimi.com/icon.png',
+    });
+
+    render(<RecentSection onNavigateImport={vi.fn()} />);
+
+    const card = await screen.findByRole('link');
+    const icon = card.querySelector<HTMLImageElement>('img.brandicon');
+    expect(icon?.getAttribute('src')).toBe('https://kimi.com/icon.png');
+    expect(card.querySelector('.brandtile')).toBeNull();
+    expect(card.querySelector('.bdomain')?.textContent).toBe('kimi.com');
+  });
+
+  it('本地资源库有图标本体时优先用 data URL，不用远程地址（task-card-icon-resource）', async () => {
+    await seed({
+      url: 'https://kimi.com/en',
+      title: 'Kimi',
+      daysAgo: 0,
+      iconUrl: 'https://kimi.com/icon.png',
+    });
+    await putResource(iconPathFor('https://kimi.com/en'), 'data:image/png;base64,AAA');
+
+    render(<RecentSection onNavigateImport={vi.fn()} />);
+
+    const card = await screen.findByRole('link');
+    await waitFor(() => {
+      expect(card.querySelector('img.brandicon')?.getAttribute('src')).toBe(
+        'data:image/png;base64,AAA',
+      );
+    });
+  });
+
+  it('图标加载失败时退回小首字母色块（onError 兜底）', async () => {
+    await seed({
+      url: 'https://kimi.com/en',
+      title: 'Kimi',
+      daysAgo: 0,
+      iconUrl: 'https://kimi.com/broken.png',
+    });
+
+    render(<RecentSection onNavigateImport={vi.fn()} />);
+
+    const card = await screen.findByRole('link');
+    const icon = card.querySelector<HTMLImageElement>('img.brandicon');
+    if (icon === null) throw new Error('品牌图标未渲染');
+    fireEvent.error(icon);
+    expect(card.querySelector('img.brandicon')).toBeNull();
+    expect(card.querySelector('.brandtile')?.textContent).toBe('K');
+  });
+
+  it('打开视图时触发一轮图标回填（已有收藏自动补取）', async () => {
+    await seed({ url: 'https://a.example/t', title: '一条', daysAgo: 0 });
+
+    render(<RecentSection onNavigateImport={vi.fn()} />);
+
+    await screen.findByText('一条');
+    expect(ensureBookmarkIcons).toHaveBeenCalled();
+  });
+
+  it('标题为空时回退展示网址，小色块取网址首字母', async () => {
     await seed({ url: 'https://bare.example/only-url', title: '', daysAgo: 0 });
 
     render(<RecentSection onNavigateImport={vi.fn()} />);
 
     const card = await screen.findByRole('link');
     expect(card.textContent).toContain('https://bare.example/only-url');
-    expect(card.querySelector('.thumb')?.textContent).toBe('H');
+    expect(card.querySelector('.brandtile')?.textContent).toBe('H');
   });
 
   it('理由为空的收藏不显示理由区域', async () => {

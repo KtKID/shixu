@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { liveQuery } from 'dexie';
 import { createDefaultTaxonomy, type Bookmark, type Taxonomy } from '@x-threadpick/shared';
 import { getActiveBookmarks } from '../../../db/bookmarks';
+import { ensureBookmarkIcons } from '../../../db/icons';
+import { getResource, iconPathFor } from '../../../db/resources';
 import { currentLibrary, readLastSyncAt } from '../../../db/library';
 import { getTaxonomy } from '../../../db/taxonomy';
 import { formatRelativeTime } from '../../../components/settings/format';
@@ -62,15 +64,48 @@ function hasNote(bookmark: Bookmark): boolean {
   return bookmark.note !== null && bookmark.note.trim() !== '';
 }
 
+/**
+ * 品牌行图标（task-card-brand-icon / task-card-icon-resource）：
+ * 优先用本地资源库的图标本体（data URL，相对键 icons/<域名> 查取，离线可用）；
+ * 本地没有回退远程 iconUrl；加载失败或无图标退回 22px 小首字母色块。
+ */
+function BrandMark({ bookmark }: { bookmark: Bookmark }) {
+  const [dataUrl, setDataUrl] = useState<string | null>(null);
+  const [broken, setBroken] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    setBroken(false);
+    setDataUrl(null);
+    getResource(iconPathFor(bookmark.url))
+      .then((stored) => {
+        if (alive) setDataUrl(stored);
+      })
+      .catch((err: unknown) => console.error('[home] 读取图标资源失败', err));
+    return () => {
+      alive = false;
+    };
+  }, [bookmark.url, bookmark.iconUrl]);
+  const src = dataUrl ?? bookmark.iconUrl;
+  if (src !== null && !broken) {
+    return (
+      <img className="brandicon" src={src} alt="" onError={() => setBroken(true)} loading="lazy" />
+    );
+  }
+  return <span className={`brandtile ${thumbGrad(bookmark)} serif`}>{thumbInitial(bookmark)}</span>;
+}
+
 function BookmarkCard({ bookmark, sync }: { bookmark: Bookmark; sync: SyncContext }) {
   const syncState = sync.tracked ? syncStateOf(bookmark, sync.lastSyncAt) : null;
   return (
     <a className="bcard" href={bookmark.url} target="_blank" rel="noreferrer noopener">
-      <div className={`thumb ${thumbGrad(bookmark)} serif`}>{thumbInitial(bookmark)}</div>
       <div className="bbody">
+        <div className="brandline">
+          <BrandMark bookmark={bookmark} />
+          <span className="bdomain">{sourceDomainOf(bookmark)}</span>
+        </div>
         <div className="btitle">{displayTitle(bookmark)}</div>
         <div className="bmeta">
-          {sourceDomainOf(bookmark)} · {formatRelativeTime(bookmark.createdAt)}
+          {formatRelativeTime(bookmark.createdAt)}
           {syncState !== null && sync.tracked && (
             <span
               className={`sync-cloud ${syncState}`}
@@ -124,12 +159,29 @@ export default function RecentSection({
   const [filter, setFilter] = useState<FilterSelection>(emptyFilter);
 
   useEffect(() => {
+    let disposed = false;
     Promise.all([getActiveBookmarks(), getTaxonomy(), readSyncContext()])
-      .then(([bookmarks, taxonomy, sync]) => setState({ bookmarks, taxonomy, sync }))
+      .then(([bookmarks, taxonomy, sync]) => {
+        if (!disposed) setState({ bookmarks, taxonomy, sync });
+      })
       .catch((err: unknown) => {
         console.error('[home] 读取收藏库失败', err);
-        setState({ bookmarks: [], taxonomy: createDefaultTaxonomy(), sync: { tracked: false } });
+        if (!disposed)
+          setState({ bookmarks: [], taxonomy: createDefaultTaxonomy(), sync: { tracked: false } });
       });
+    // 图标异步回填（task-card-brand-icon）：不阻塞首屏；本轮有补上的图标则重取列表刷新
+    ensureBookmarkIcons()
+      .then(async (updated) => {
+        if (updated === 0 || disposed) return;
+        const bookmarks = await getActiveBookmarks();
+        if (!disposed) {
+          setState((prev) => (prev === 'loading' ? prev : { ...prev, bookmarks }));
+        }
+      })
+      .catch((err: unknown) => console.error('[home] 图标回填失败', err));
+    return () => {
+      disposed = true;
+    };
   }, []);
 
   /**
