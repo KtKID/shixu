@@ -51,12 +51,19 @@ describe('主页布局契约（task-home-layout）', () => {
     expect(bare).toEqual([]);
   });
 
-  it('自动同步 checkbox 与文字垂直对齐：固定 14px、去 UA margin、主题 accent 色（用户视觉反馈）', () => {
-    const match = cardsCss.match(/\.check-inline input\[type='checkbox'\]\s*\{([^}]*)\}/);
-    expect(match).not.toBeNull();
-    expect(match?.[1]).toContain('width: 14px');
-    expect(match?.[1]).toContain('margin: 0');
-    expect(match?.[1]).toContain('accent-color: var(--accent)');
+  it('自动同步 checkbox 与文字垂直对齐：label 提特异性保住 flex 居中 + checkbox 固定 14px 去 margin 用 accent 色（用户视觉反馈）', () => {
+    // .card label（0-1-1）会盖掉单类 .check-inline（0-1-0）的 display:flex，
+    // 退化成行内基线对齐导致勾选框偏高——必须用 .card label.check-inline 赢回布局
+    const label = cardsCss.match(/\.card label\.check-inline\s*\{([^}]*)\}/);
+    expect(label).not.toBeNull();
+    expect(label?.[1]).toContain('display: flex');
+    expect(label?.[1]).toContain('align-items: center');
+    expect(label?.[1]).toContain('margin-bottom: 0');
+    const box = cardsCss.match(/\.check-inline input\[type='checkbox'\]\s*\{([^}]*)\}/);
+    expect(box).not.toBeNull();
+    expect(box?.[1]).toContain('width: 14px');
+    expect(box?.[1]).toContain('margin: 0');
+    expect(box?.[1]).toContain('accent-color: var(--accent)');
   });
 
   it('⌘K 提示为纯文本：.searchbox-kbd 不设边框与背景（用户视觉反馈）', () => {

@@ -305,15 +305,20 @@ section.card {
   min-width: 96px;
   text-align: center;
 }
-.check-inline {
+/* .card label（特异性 0-1-1）会盖掉单类 .check-inline（0-1-0）的 flex 布局，
+   退化成「行内裸 checkbox 按基线对齐」导致勾选框偏高——这里提特异性赢回：
+   label 作为包住勾选框+文字的整体区域，flex 让两者垂直居中。 */
+.card label.check-inline {
   display: flex;
   align-items: center;
   gap: 6px;
+  margin-bottom: 0;
   font-size: 12.5px;
+  letter-spacing: normal;
   color: var(--ink-soft);
   cursor: pointer;
 }
-/* 原生 checkbox 自带垂直内部度量，flex 居中后仍偏高 ~1.5px 且默认蓝色与暖色设计不符：
+/* 原生 checkbox 自带垂直内部度量且默认蓝色与暖色设计不符：
    固定尺寸 + 去 UA margin + 主题 accent 色。 */
 .check-inline input[type='checkbox'] {
   width: 14px;
