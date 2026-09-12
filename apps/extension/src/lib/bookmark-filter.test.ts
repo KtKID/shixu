@@ -390,3 +390,62 @@ describe('feat06 场景2（引擎层）：没有匹配', () => {
     expect(hits).toEqual([]);
   });
 });
+
+describe('sync-archive feat06：「待同步」筛选（引擎层）', () => {
+  const SYNCED_AT = '2026-09-11T12:00:00.000Z';
+  const synced = make('synced', { createdAt: '2026-09-10T08:00:00.000Z' }); // updatedAt ≤ SYNCED_AT
+  const pendingA = make('pendingA', { createdAt: '2026-09-13T08:00:00.000Z' }); // updatedAt > SYNCED_AT
+  const pendingB = make('pendingB', { createdAt: '2026-09-13T09:00:00.000Z' });
+
+  it('emptyFilter 含 pendingOnly: false（默认不按同步状态过滤）', () => {
+    expect(emptyFilter().pendingOnly).toBe(false);
+  });
+
+  it('pendingOnly 计入 hasActiveFilter：选中后出现「清除全部筛选」的前提（场景1 复用清除交互）', () => {
+    expect(hasActiveFilter(emptyFilter())).toBe(false);
+    expect(hasActiveFilter(selection({ pendingOnly: true }))).toBe(true);
+    expect(hasActiveFilter(selection({ pendingOnly: true, query: '' }))).toBe(true);
+  });
+
+  it('pendingOnly=true 只命中 updatedAt > lastSyncAt 的条目（场景1：筛出待同步）', () => {
+    const filter = selection({ pendingOnly: true });
+    expect(matchesFilter(pendingA, filter, { lastSyncAt: SYNCED_AT })).toBe(true);
+    expect(matchesFilter(synced, filter, { lastSyncAt: SYNCED_AT })).toBe(false);
+
+    const hits = applyFilter([synced, pendingB, pendingA], filter, { lastSyncAt: SYNCED_AT });
+    expect(hits.map((hit) => hit.title)).toEqual(['pendingB', 'pendingA']); // 新到旧
+  });
+
+  it('pendingOnly=true 且从未同步（lastSyncAt=null）：全部条目都算待同步', () => {
+    const filter = selection({ pendingOnly: true });
+    expect(matchesFilter(synced, filter, { lastSyncAt: null })).toBe(true);
+  });
+
+  it('pendingOnly=false 时 sync 语境不影响命中（已同步条目照常出现）', () => {
+    const filter = emptyFilter();
+    expect(matchesFilter(synced, filter, { lastSyncAt: SYNCED_AT })).toBe(true);
+  });
+
+  it('pendingOnly=true 且无 sync 语境（未登录误用防御）：全部不命中', () => {
+    expect(matchesFilter(pendingA, selection({ pendingOnly: true }))).toBe(false);
+  });
+
+  it('候选计数以 pendingOnly 为前提 scoped（已选待同步时，主题计数只统计待同步条目）', () => {
+    const taxonomy = { topic: ['AI'], type: [], purpose: [], status: ['inbox'] };
+    const library = [pendingA, pendingB, synced]; // pendingA/pendingB 标 AI，synced 也标 AI
+    pendingA.classification.topics = ['AI'];
+    pendingB.classification.topics = ['AI'];
+    synced.classification.topics = ['AI'];
+
+    const facets = countFacetValues(
+      library,
+      selection({ pendingOnly: true }),
+      'topic',
+      taxonomy.topic,
+      {
+        lastSyncAt: SYNCED_AT,
+      },
+    );
+    expect(facets).toEqual([{ value: 'AI', count: 2, selected: false }]); // 只数 2 条待同步
+  });
+});

@@ -32,10 +32,20 @@ function make(
   return bookmark;
 }
 
-function setup(bookmarks: readonly Bookmark[], filter: FilterSelection = emptyFilter()) {
+function setup(
+  bookmarks: readonly Bookmark[],
+  filter: FilterSelection = emptyFilter(),
+  syncTracked = false,
+) {
   const onChange = vi.fn();
   render(
-    <FiltersPanel bookmarks={bookmarks} taxonomy={taxonomy} filter={filter} onChange={onChange} />,
+    <FiltersPanel
+      bookmarks={bookmarks}
+      taxonomy={taxonomy}
+      filter={filter}
+      onChange={onChange}
+      syncTracked={syncTracked}
+    />,
   );
   return { onChange };
 }
@@ -195,5 +205,45 @@ describe('候选计数随其他维度条件变化（feat05 场景5 / T3 计数�
     expect(aiChip.getAttribute('aria-pressed')).toBe('true');
     // 计数不含本维度已选项的影响：形态=论文下标有 AI 的条数 = 2
     expect(aiChip.querySelector('.fchip-count')?.textContent).toBe('2');
+  });
+});
+
+describe('「待同步」入口（sync-archive feat06）', () => {
+  const at = (iso: string): Bookmark[] => [make('a', { createdAt: iso })];
+
+  it('已登录时显示「待同步」入口（场景1 的前提）', () => {
+    setup(at('2026-09-10T08:00:00.000Z'), emptyFilter(), true);
+    expect(screen.getByRole('button', { name: '待同步' })).toBeTruthy();
+  });
+
+  it('未登录时不显示「待同步」入口（场景3）', () => {
+    setup(at('2026-09-10T08:00:00.000Z'));
+    expect(screen.queryByRole('button', { name: '待同步' })).toBeNull();
+  });
+
+  it('点击入口 → onChange pendingOnly=true（场景1：列表交给 applyFilter 只留待同步）', () => {
+    const { onChange } = setup(at('2026-09-10T08:00:00.000Z'), emptyFilter(), true);
+
+    fireEvent.click(screen.getByRole('button', { name: '待同步' }));
+    expect(onChange).toHaveBeenLastCalledWith({ ...emptyFilter(), pendingOnly: true });
+  });
+
+  it('已选中时再点 → onChange pendingOnly=false（与 chips 一致的再点取消）', () => {
+    const { onChange } = setup(
+      at('2026-09-10T08:00:00.000Z'),
+      { ...emptyFilter(), pendingOnly: true },
+      true,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '待同步' }));
+    expect(onChange).toHaveBeenLastCalledWith({ ...emptyFilter(), pendingOnly: false });
+  });
+
+  it('选中态入口呈按下态（aria-pressed，与 chips 交互一致）', () => {
+    setup(at('2026-09-10T08:00:00.000Z'), { ...emptyFilter(), pendingOnly: true }, true);
+
+    expect(screen.getByRole('button', { name: '待同步' }).getAttribute('aria-pressed')).toBe(
+      'true',
+    );
   });
 });

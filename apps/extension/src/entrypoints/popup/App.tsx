@@ -7,6 +7,7 @@ import {
 } from '@x-threadpick/shared';
 import { getActiveBookmarks, getBookmarkByUrl, captureBookmark } from '../../db/bookmarks';
 import { addTaxonomyValue, getTaxonomy, removeTaxonomyValue } from '../../db/taxonomy';
+import { subscribeLibrarySwitch } from '../../db/library';
 import { isCapturableUrl, resolveCaptureTarget } from '../../lib/capture-invoke';
 
 /**
@@ -15,6 +16,7 @@ import { isCapturableUrl, resolveCaptureTarget } from '../../lib/capture-invoke'
  * 增删入口（「×」删除钮与底部修改区）都收进修改模式（feat08 场景7/8）：顶栏「修改/完成」切换，
  * 默认不渲染，日常点选一屏放下；popup 每次打开都是全新页面加载，editing 不持久化，重开自然复位。
  * 保存链路：captureBookmark upsert → 横幅 → （保存并关闭 Tab 时）关目标标签页 → 关面板。
+ * 多库架构（task-account-libraries T8）：读写一律走当前库；账号切换广播（storage onChanged）触发计数与取值重读。
  */
 
 const DIMS = [
@@ -71,6 +73,8 @@ export default function App(props: CapturePanelProps) {
   const [targetState, setTargetState] = useState<TargetState>({ status: 'loading' });
   const [count, setCount] = useState<number | null>(null);
   const [taxonomy, setTaxonomy] = useState<Taxonomy | null>(null);
+  // 账号切换广播（T8）：主页登录/登出/切换时刷新面板内的库数据
+  const [libraryEpoch, setLibraryEpoch] = useState(0);
   const [why, setWhy] = useState('');
   const [existingBookmark, setExistingBookmark] = useState<Bookmark | null>(null);
   const [selection, setSelection] = useState<DimSelection>({
@@ -99,6 +103,11 @@ export default function App(props: CapturePanelProps) {
   const whyRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
+    const unsubscribe = subscribeLibrarySwitch(() => setLibraryEpoch((n) => n + 1));
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
     resolveCaptureTarget()
       .then(async (target) => {
         setTargetState({ status: 'ready', target });
@@ -124,7 +133,7 @@ export default function App(props: CapturePanelProps) {
     getTaxonomy()
       .then(setTaxonomy)
       .catch(() => setTaxonomy(null));
-  }, []);
+  }, [libraryEpoch]);
 
   const ready = targetState.status === 'ready';
   const target = ready ? targetState.target : null;

@@ -30,11 +30,39 @@ interface FiltersPanelProps {
   taxonomy: Taxonomy;
   filter: FilterSelection;
   onChange: (next: FilterSelection) => void;
+  /** 是否处于同步追踪态（已登录账号库）：未登录（default 库）不显示「待同步」入口（feat06 场景3）。 */
+  syncTracked?: boolean;
 }
 
-export default function FiltersPanel({ bookmarks, taxonomy, filter, onChange }: FiltersPanelProps) {
+export default function FiltersPanel({
+  bookmarks,
+  taxonomy,
+  filter,
+  onChange,
+  syncTracked = false,
+}: FiltersPanelProps) {
   return (
     <div className="filters" aria-label="按维度筛选">
+      {syncTracked && (
+        <div className="fdim fsync">
+          <span className="fdim-name">
+            <span className="fdim-ic" aria-hidden="true">
+              ☁
+            </span>
+            同步
+          </span>
+          <div className="fchips">
+            <button
+              type="button"
+              className={`fchip${filter.pendingOnly ? ' on' : ''}`}
+              aria-pressed={filter.pendingOnly}
+              onClick={() => onChange({ ...filter, pendingOnly: !filter.pendingOnly })}
+            >
+              待同步
+            </button>
+          </div>
+        </div>
+      )}
       {DIMENSION_META.map((meta) => {
         const facets = countFacetValues(bookmarks, filter, meta.key, taxonomy[meta.key]);
         return (

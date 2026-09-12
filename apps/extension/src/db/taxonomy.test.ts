@@ -1,14 +1,18 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { fakeBrowser } from 'wxt/testing/fake-browser';
 import {
   DEFAULT_STATUS,
   TAXONOMY_EPOCH,
   TAXONOMY_VALUE_MAX,
   createBookmark,
 } from '@x-threadpick/shared';
-import { db } from './bookmarks';
 import { addTaxonomyValue, getTaxonomy, removeTaxonomyValue } from './taxonomy';
+import { currentLibrary, resetLibraryRuntime } from './library';
 
 beforeEach(async () => {
+  fakeBrowser.reset();
+  await resetLibraryRuntime();
+  const db = await currentLibrary();
   await db.taxonomies.clear();
   await db.bookmarks.clear();
 });
@@ -79,10 +83,10 @@ describe('removeTaxonomyValue', () => {
   it('删除取值不改动任何书签数据（feat07 场景2）', async () => {
     const id = crypto.randomUUID();
     const bookmark = createBookmark(id, { url: 'https://example.com/a', title: 'A' });
-    await db.bookmarks.add(bookmark);
+    await (await currentLibrary()).bookmarks.add(bookmark);
     const result = await removeTaxonomyValue('topic', 'Harness');
     expect(result).toEqual({ status: 'removed' });
-    expect(await db.bookmarks.get(id)).toEqual(bookmark);
+    expect(await (await currentLibrary()).bookmarks.get(id)).toEqual(bookmark);
   });
 
   it('默认状态 inbox 不可删除（feat07 场景3）', async () => {

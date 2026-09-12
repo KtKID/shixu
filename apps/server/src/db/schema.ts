@@ -1,5 +1,5 @@
-import { index, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
-import type { FilterCondition } from '@x-threadpick/shared';
+import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import type { FilterCondition, SnapshotArchive } from '@x-threadpick/shared';
 
 /**
  * 表结构对齐 packages/shared 的 zod schema（对外协议以 shared 为准）。
@@ -68,7 +68,24 @@ export const taxonomies = sqliteTable('taxonomies', {
   updatedAt: text('updated_at').notNull(),
 });
 
+/**
+ * 快照存档（sync-archive feat07）：按账号存整库快照，v1 结构化文本入 SQLite（不涉对象存储）。
+ * payload 整体存 JSON（书签全量含墓碑 + taxonomy + savedAt）；itemCount 为展示口径（活跃收藏数）。
+ */
+export const snapshots = sqliteTable(
+  'snapshots',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    savedAt: text('saved_at').notNull(),
+    itemCount: integer('item_count').notNull(),
+    payload: text('payload', { mode: 'json' }).$type<SnapshotArchive>().notNull(),
+  },
+  (t) => [index('snapshots_user_saved_idx').on(t.userId, t.savedAt)],
+);
+
 export type UserRow = typeof users.$inferSelect;
 export type BookmarkRow = typeof bookmarks.$inferSelect;
 export type ViewRow = typeof views.$inferSelect;
 export type TaxonomyRow = typeof taxonomies.$inferSelect;
+export type SnapshotRow = typeof snapshots.$inferSelect;

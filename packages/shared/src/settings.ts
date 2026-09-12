@@ -24,7 +24,6 @@ export const SettingsSchema = z.object({
   activeServerUrl: z.url().nullable(),
   history: z.array(ServerRecordSchema).max(20),
   session: SessionSchema.nullable(),
-  lastSyncAt: z.iso.datetime().nullable(),
   /** 自动同步开关，按账号记忆：key = `${serverUrl}#${email}`（feat11 场景3/4）。缺省补 {}（兼容旧记录）。 */
   autoSync: z.record(z.string(), z.boolean()).default({}),
 });
@@ -34,6 +33,13 @@ export const DEFAULT_SETTINGS: Settings = {
   activeServerUrl: null,
   history: [],
   session: null,
-  lastSyncAt: null,
   autoSync: {},
 };
+
+/**
+ * 兼容读取：旧版全局 lastSyncAt（新版 SettingsSchema 已剔除）。
+ * 仅用于存量升级迁移（task-account-libraries T3）把旧同步进度带入对应账号库。
+ */
+export const LegacyLastSyncAtSchema = z.object({
+  lastSyncAt: z.iso.datetime().nullable(),
+});

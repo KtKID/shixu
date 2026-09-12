@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { and, eq, gt } from 'drizzle-orm';
+import { and, count, eq, gt, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import {
   SyncPullResponseSchema,
@@ -53,12 +53,23 @@ syncRoutes.get('/', (c) => {
           .all();
   const taxonomyRow = db.select().from(taxonomies).where(eq(taxonomies.userId, userId)).get();
 
+  // 服务器概览（feat05 场景1）：当前账号未删除收藏总数。
+  // 走既有 user_id 前缀索引（bookmarks_user_url_idx / bookmarks_user_updated_idx 均可用），
+  // 由 SQLite 查询规划器自选，不新建索引。
+  const totalRow = db
+    .select({ value: count() })
+    .from(bookmarks)
+    .where(and(eq(bookmarks.userId, userId), isNull(bookmarks.deletedAt)))
+    .get();
+  const bookmarksTotal = totalRow?.value ?? 0;
+
   return c.json(
     SyncPullResponseSchema.parse({
       serverTime: new Date().toISOString(),
       bookmarks: bookmarkRows.map(rowToBookmark),
       views: viewRows.map(rowToView),
       taxonomy: taxonomyRow === undefined ? createDefaultTaxonomy() : rowToTaxonomy(taxonomyRow),
+      bookmarksTotal,
     }),
   );
 });

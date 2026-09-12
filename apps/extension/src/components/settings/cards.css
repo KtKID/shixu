@@ -509,6 +509,42 @@ section.card {
   color: var(--accent-ink);
 }
 
+/* 快照存档区（sync-archive feat07/feat08）：低干扰列表，每行时间 · 条数 · 恢复/删除 */
+.snap-list {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+}
+
+.snap-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 2px;
+  border-bottom: 1px dashed rgba(0, 0, 0, 0.08);
+  font-size: 13px;
+}
+
+.snap-item:last-child {
+  border-bottom: none;
+}
+
+.snap-time {
+  color: var(--ink-soft);
+  min-width: 96px;
+}
+
+.snap-count {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.snap-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 10px;
+}
+
 @media (max-width: 560px) {
   .dim-grid {
     grid-template-columns: 1fr;

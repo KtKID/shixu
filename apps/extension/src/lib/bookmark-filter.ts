@@ -1,16 +1,25 @@
 import type { Bookmark, Classification, Dimension } from '@x-threadpick/shared';
+import { syncStateOf } from './sync-status';
 
 /**
  * 四维筛选引擎（homepage feat05）：纯函数，不触库、不感知 UI。
  * 规则：同维度内多选取「或」，跨维度取「且」；状态维度单值；
  * 主题维度可切换「满足任一 / 全部满足」（仅作用于主题，其余多选维度恒为「或」）。
+ * sync-archive feat06：「待同步」作为第五个正交条件（pendingOnly），命中判定依赖
+ * 调用方传入的同步语境（当前库 lastSyncAt），引擎本身仍不触库。
  */
 
 export type TopicMatchMode = 'any' | 'all';
 
+/** 同步语境（feat06）：待同步 = updatedAt > 当前库 lastSyncAt（口径同 lib/sync-status）。 */
+export interface SyncFilterContext {
+  lastSyncAt: string | null;
+}
+
 /**
  * 筛选条件：主题/形态/用途多选、状态单值（null = 未选）；topicMatch 仅作用于主题维度；
- * query 为收藏搜索关键词（feat06，空串 = 未搜索，与四维筛选取「且」叠加）。
+ * query 为收藏搜索关键词（feat06，空串 = 未搜索，与四维筛选取「且」叠加）；
+ * pendingOnly = 只看待同步（sync-archive feat06，未登录界面保证不置真）。
  */
 export interface FilterSelection {
   topics: string[];
@@ -19,21 +28,35 @@ export interface FilterSelection {
   status: string | null;
   topicMatch: TopicMatchMode;
   query: string;
+  pendingOnly: boolean;
 }
 
-/** 默认空筛选：满足任一、无任何已选条件、无搜索词（feat05 场景4 默认）。 */
+/** 默认空筛选：满足任一、无任何已选条件、无搜索词、不按待同步过滤（feat05 场景4 默认）。 */
 export function emptyFilter(): FilterSelection {
-  return { topics: [], types: [], purposes: [], status: null, topicMatch: 'any', query: '' };
+  return {
+    topics: [],
+    types: [],
+    purposes: [],
+    status: null,
+    topicMatch: 'any',
+    query: '',
+    pendingOnly: false,
+  };
 }
 
-/** 是否存在任一筛选条件（feat05 场景6：「清除全部筛选」的显示前提）。 */
-export function hasActiveFilter(filter: FilterSelection): boolean {
+/** 是否存在四维筛选条件（不含 pendingOnly 与搜索词；供「待同步」专属空态判定）。 */
+export function hasDimensionFilter(filter: FilterSelection): boolean {
   return (
     filter.topics.length > 0 ||
     filter.types.length > 0 ||
     filter.purposes.length > 0 ||
     filter.status !== null
   );
+}
+
+/** 是否存在任一筛选条件（feat05 场景6：「清除全部筛选」的显示前提；pendingOnly 计入）。 */
+export function hasActiveFilter(filter: FilterSelection): boolean {
+  return hasDimensionFilter(filter) || filter.pendingOnly;
 }
 
 function toggleInList(list: readonly string[], value: string): string[] {
@@ -86,10 +109,20 @@ export function matchesQuery(bookmark: Bookmark, keyword: string): boolean {
   );
 }
 
-/** 判断单条书签是否命中筛选条件（维度间「且」、维度内「或」、状态单值、主题可全满足、关键词「且」叠加）。 */
-export function matchesFilter(bookmark: Bookmark, filter: FilterSelection): boolean {
+/** 判断单条书签是否命中筛选条件（维度间「且」、维度内「或」、状态单值、主题可全满足、关键词与「待同步」均「且」叠加）。 */
+export function matchesFilter(
+  bookmark: Bookmark,
+  filter: FilterSelection,
+  sync?: SyncFilterContext,
+): boolean {
   const { topics, types, purposes, status, topicMatch } = filter;
   if (!matchesQuery(bookmark, filter.query)) {
+    return false;
+  }
+  if (
+    filter.pendingOnly &&
+    (sync === undefined || syncStateOf(bookmark, sync.lastSyncAt) !== 'pending')
+  ) {
     return false;
   }
   if (topics.length > 0) {
@@ -114,10 +147,14 @@ export function matchesFilter(bookmark: Bookmark, filter: FilterSelection): bool
   return true;
 }
 
-/** 应用筛选并按收藏时间（createdAt）从新到旧排列（feat05 场景1）。 */
-export function applyFilter(bookmarks: readonly Bookmark[], filter: FilterSelection): Bookmark[] {
+/** 应用筛选并按收藏时间（createdAt）从新到旧排列（feat05 场景1；pendingOnly 需传 sync 语境）。 */
+export function applyFilter(
+  bookmarks: readonly Bookmark[],
+  filter: FilterSelection,
+  sync?: SyncFilterContext,
+): Bookmark[] {
   return bookmarks
-    .filter((bookmark) => matchesFilter(bookmark, filter))
+    .filter((bookmark) => matchesFilter(bookmark, filter, sync))
     .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
 }
 
@@ -155,16 +192,17 @@ function withoutDimension(filter: FilterSelection, dimension: Dimension): Filter
 /**
  * 候选动态计数：每个候选取值的 count 按**其他维度**的已选条件计算
  * （基准集剔除本维度已选项的影响），不含本维度条件；已选候选与计数为 0 的
- * 候选始终保留在结果里（candidates 逐项返回，不裁剪）。
+ * 候选始终保留在结果里（candidates 逐项返回，不裁剪）；pendingOnly 保持为前提。
  */
 export function countFacetValues(
   bookmarks: readonly Bookmark[],
   filter: FilterSelection,
   dimension: Dimension,
   candidates: readonly string[],
+  sync?: SyncFilterContext,
 ): FacetCount[] {
   const scoped = bookmarks.filter((bookmark) =>
-    matchesFilter(bookmark, withoutDimension(filter, dimension)),
+    matchesFilter(bookmark, withoutDimension(filter, dimension), sync),
   );
   const valuesOf = DIMENSION_VALUES[dimension];
   return candidates.map((value) => ({

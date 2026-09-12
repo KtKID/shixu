@@ -232,6 +232,7 @@ describe('syncPull / syncPush（feat10 协议面）', () => {
             bookmarks: [],
             views: [],
             taxonomy,
+            bookmarksTotal: 0, // sync-archive feat05：服务器概览总数随 pull 返回
           }),
           { status: 200 },
         ),

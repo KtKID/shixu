@@ -6,12 +6,14 @@ import {
   createDefaultTaxonomy,
   DEFAULT_STATUS,
   TAXONOMY_VALUE_MAX,
+  TaxonomySchema,
   type Bookmark,
   type CaptureTarget,
   type Taxonomy,
 } from '@x-threadpick/shared';
 import type { Browser } from 'wxt/browser';
-import { db } from '../../db/bookmarks';
+import { currentLibrary, openLibrary, resetLibraryRuntime, type LibraryDB } from '../../db/library';
+import { recordServerLogin } from '../../db/settings';
 import { CAPTURE_TARGET_KEY } from '../../lib/capture-invoke';
 import App from './App';
 
@@ -77,6 +79,9 @@ function mockActiveTab(tab: Partial<Browser.tabs.Tab>): void {
   ]);
 }
 
+// 每个测试前重新解析当前库句柄（多库架构：db 不再是模块级单例）
+let db: LibraryDB;
+
 /** 写入本地 taxonomy 单行，模拟「设置」页维护过的取值集合。 */
 async function seedTaxonomy(overrides: Partial<Omit<Taxonomy, 'updatedAt'>>) {
   const taxonomy = { ...createDefaultTaxonomy(), ...overrides };
@@ -103,6 +108,8 @@ beforeEach(async () => {
   fakeBrowser.reset();
   browser.tabs.remove = realTabsRemove;
   browser.tabs.create = realTabsCreate;
+  await resetLibraryRuntime();
+  db = await currentLibrary();
   await db.bookmarks.clear();
   await db.taxonomies.clear();
 });
@@ -937,5 +944,47 @@ describe('顶栏库计数（capture feat07 修订 / homepage feat01 场景5 修�
 
     expect(await screen.findByText('收藏0条')).toBeTruthy();
     expect(screen.queryByRole('button', { name: '打开导入器' })).toBeNull();
+  });
+});
+
+describe('账号切换刷新（task-account-libraries T8 / feat01 场景5）', () => {
+  it('收到切换广播后，库计数与四维取值重读为新账号库（default → B）', async () => {
+    await db.bookmarks.add(
+      createBookmark(crypto.randomUUID(), { url: 'https://example.com/d', title: '默认库一条' }),
+    );
+    await seedTaxonomy({ topic: ['默认主题'] });
+    await stashTarget(WEB_TARGET);
+    mockNoActiveTab();
+    render(<App />);
+
+    expect(await screen.findByText('收藏1条')).toBeTruthy();
+    expect(screen.getByRole('button', { name: '默认主题' })).toBeTruthy();
+
+    // 主页完成登录 B：settings 写入 → storage.onChanged 广播；B 的库本机已有数据
+    const S1 = 'https://s1.example:8443';
+    const sessionB = {
+      email: 'b@x.com',
+      serverUrl: S1,
+      token: 't-b',
+      expiresAt: '2030-01-01T00:00:00.000Z',
+    };
+    const libB = await openLibrary(`${S1}#b@x.com`);
+    await libB.bookmarks.bulkAdd([
+      createBookmark(crypto.randomUUID(), { url: 'https://example.com/b1', title: 'B 一条' }),
+      createBookmark(crypto.randomUUID(), { url: 'https://example.com/b2', title: 'B 两条' }),
+    ]);
+    await libB.taxonomies.put({
+      id: 'local',
+      taxonomy: TaxonomySchema.parse({
+        ...createDefaultTaxonomy(),
+        topic: ['B 主题'],
+        updatedAt: '2026-09-10T00:00:00.000Z',
+      }),
+    });
+    await recordServerLogin(S1, sessionB);
+
+    expect(await screen.findByText('收藏2条')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'B 主题' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '默认主题' })).toBeNull();
   });
 });

@@ -3,11 +3,21 @@ import {
   LoginRequestSchema,
   LoginResponseSchema,
   RegisterRequestSchema,
+  SnapshotCreateRequestSchema,
+  SnapshotCreateResponseSchema,
+  SnapshotDeleteResponseSchema,
+  SnapshotDetailResponseSchema,
+  SnapshotListResponseSchema,
   SyncPullResponseSchema,
   SyncPushRequestSchema,
   SyncPushResponseSchema,
   type LoginRequest,
   type RegisterRequest,
+  type SnapshotCreateRequest,
+  type SnapshotCreateResponse,
+  type SnapshotDeleteResponse,
+  type SnapshotDetailResponse,
+  type SnapshotListResponse,
   type SyncPullResponse,
   type SyncPushRequest,
   type SyncPushResponse,
@@ -207,6 +217,96 @@ export async function syncPush(
     if (!response.ok) return { status: 'server_error' };
     const raw: unknown = await response.json();
     const parsed = SyncPushResponseSchema.safeParse(raw);
+    if (!parsed.success) return { status: 'server_error' };
+    return { status: 'ok', data: parsed.data };
+  } catch {
+    return { status: 'unreachable' };
+  }
+}
+
+// ---- 快照存档（sync-archive feat07/feat08/feat09）：状态映射同 syncPush ----
+
+/** POST /snapshots：把整库存档上传到当前账号名下。 */
+export async function createSnapshot(
+  baseUrl: string,
+  token: string,
+  body: SnapshotCreateRequest,
+): Promise<SyncOutcome<SnapshotCreateResponse>> {
+  try {
+    const response = await fetchWithTimeout(`${baseUrl}/snapshots`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', authorization: `Bearer ${token}` },
+      body: JSON.stringify(SnapshotCreateRequestSchema.parse(body)),
+    });
+    if (response.status === 401) return { status: 'unauthorized' };
+    if (!response.ok) return { status: 'server_error' };
+    const raw: unknown = await response.json();
+    const parsed = SnapshotCreateResponseSchema.safeParse(raw);
+    if (!parsed.success) return { status: 'server_error' };
+    return { status: 'ok', data: parsed.data };
+  } catch {
+    return { status: 'unreachable' };
+  }
+}
+
+/** GET /snapshots：当前账号的快照列表（新到旧，仅 meta）。 */
+export async function listSnapshots(
+  baseUrl: string,
+  token: string,
+): Promise<SyncOutcome<SnapshotListResponse>> {
+  try {
+    const response = await fetchWithTimeout(`${baseUrl}/snapshots`, {
+      method: 'GET',
+      headers: { authorization: `Bearer ${token}` },
+    });
+    if (response.status === 401) return { status: 'unauthorized' };
+    if (!response.ok) return { status: 'server_error' };
+    const raw: unknown = await response.json();
+    const parsed = SnapshotListResponseSchema.safeParse(raw);
+    if (!parsed.success) return { status: 'server_error' };
+    return { status: 'ok', data: parsed.data };
+  } catch {
+    return { status: 'unreachable' };
+  }
+}
+
+/** GET /snapshots/:id：单份快照全量载荷（恢复用）。 */
+export async function getSnapshot(
+  baseUrl: string,
+  token: string,
+  id: string,
+): Promise<SyncOutcome<SnapshotDetailResponse>> {
+  try {
+    const response = await fetchWithTimeout(`${baseUrl}/snapshots/${encodeURIComponent(id)}`, {
+      method: 'GET',
+      headers: { authorization: `Bearer ${token}` },
+    });
+    if (response.status === 401) return { status: 'unauthorized' };
+    if (!response.ok) return { status: 'server_error' };
+    const raw: unknown = await response.json();
+    const parsed = SnapshotDetailResponseSchema.safeParse(raw);
+    if (!parsed.success) return { status: 'server_error' };
+    return { status: 'ok', data: parsed.data };
+  } catch {
+    return { status: 'unreachable' };
+  }
+}
+
+/** DELETE /snapshots/:id：删除一份快照（只动快照，不动收藏库）。 */
+export async function deleteSnapshot(
+  baseUrl: string,
+  token: string,
+  id: string,
+): Promise<SyncOutcome<SnapshotDeleteResponse>> {
+  try {
+    const response = await fetchWithTimeout(`${baseUrl}/snapshots/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: { authorization: `Bearer ${token}` },
+    });
+    if (response.status === 401) return { status: 'unauthorized' };
+    if (!response.ok) return { status: 'server_error' };
+    const raw: unknown = await response.json();
+    const parsed = SnapshotDeleteResponseSchema.safeParse(raw);
     if (!parsed.success) return { status: 'server_error' };
     return { status: 'ok', data: parsed.data };
   } catch {

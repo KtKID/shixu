@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import { ZodError } from 'zod';
 import { HealthResponseSchema } from '@x-threadpick/shared';
 import { authRoutes } from './routes/auth';
+import { snapshotRoutes } from './routes/snapshots';
 import { syncRoutes } from './routes/sync';
 import { taxonomyRoutes } from './routes/taxonomy';
 import { SERVER_VERSION } from './version';
@@ -21,6 +22,7 @@ app.get('/healthz', (c) =>
 app.route('/auth', authRoutes);
 app.route('/sync', syncRoutes);
 app.route('/taxonomy', taxonomyRoutes);
+app.route('/snapshots', snapshotRoutes);
 
 app.onError((err, c) => {
   if (err instanceof ZodError) {

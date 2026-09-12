@@ -324,6 +324,13 @@ body {
   font-size: 13px;
   color: var(--ink-faint);
 }
+/* 页头汇总行（sync-archive feat04）：副标题下方一行小字，整库同步情况 */
+.page-summary {
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
 .page-head .clear-filters {
   flex: none;
   margin-top: 12px;
@@ -583,6 +590,23 @@ body {
   font-size: 11px;
   color: var(--ink-faint);
   font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+}
+/* 云朵同步标记（sync-archive feat03）：已同步低调存在（与来源行同灰阶），
+   待同步醒目（强调色 + 加重），两态明显区分；登录前不渲染（feat03 场景4）。 */
+.sync-cloud {
+  margin-left: 5px;
+  font-size: 11px;
+  cursor: default;
+}
+.sync-cloud.synced {
+  color: var(--ink-faint);
+  opacity: 0.7;
+}
+.sync-cloud.pending {
+  color: var(--accent-ink);
+  opacity: 1;
+  font-weight: 700;
+  text-shadow: 0 0 6px rgba(181, 80, 42, 0.25);
 }
 .bnote {
   font-size: 12.5px;

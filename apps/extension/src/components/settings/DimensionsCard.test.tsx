@@ -1,10 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { db } from '../../db/bookmarks';
+import { fakeBrowser } from 'wxt/testing/fake-browser';
+import { currentLibrary, resetLibraryRuntime, type LibraryDB } from '../../db/library';
 import DimensionsCard from './DimensionsCard';
+
+let db: LibraryDB;
 
 beforeEach(async () => {
   cleanup();
+  fakeBrowser.reset();
+  await resetLibraryRuntime();
+  db = await currentLibrary();
   await db.taxonomies.clear();
 });
 

@@ -104,8 +104,8 @@ export async function clearSession(): Promise<Settings> {
   return next;
 }
 
-/** 自动同步开关的账号键（feat11 场景3：开关跟随账号）。 */
-export function accountKey(session: Session): string {
+/** 自动同步开关的账号键（feat11 场景3：开关跟随账号）；多库架构下同是账号库的库键。 */
+export function accountKey(session: Pick<Session, 'serverUrl' | 'email'>): string {
   return `${session.serverUrl}#${session.email}`;
 }
 

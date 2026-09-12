@@ -4,6 +4,7 @@ export * from './bookmark';
 export * from './view';
 export * from './auth';
 export * from './sync';
+export * from './snapshot';
 export * from './health';
 export * from './settings';
 export * from './capture-target';

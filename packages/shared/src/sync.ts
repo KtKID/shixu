@@ -14,6 +14,8 @@ export const SyncPullResponseSchema = z.object({
   bookmarks: z.array(BookmarkSchema),
   views: z.array(ViewSchema),
   taxonomy: TaxonomySchema,
+  /** 当前账号在服务器上的未删除收藏总数（sync-archive feat05：账号卡服务器概览行）。 */
+  bookmarksTotal: z.number().int().nonnegative(),
 });
 export type SyncPullResponse = z.infer<typeof SyncPullResponseSchema>;
 

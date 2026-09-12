@@ -1,14 +1,17 @@
 import {
   BookmarkSchema,
+  SnapshotArchiveSchema,
   TaxonomySchema,
   ViewSchema,
   type Bookmark,
   type BookmarkStatus,
   type FilterCondition,
+  type SnapshotArchive,
+  type SnapshotMeta,
   type Taxonomy,
   type View,
 } from '@x-threadpick/shared';
-import type { BookmarkRow, TaxonomyRow, ViewRow } from './schema';
+import type { BookmarkRow, SnapshotRow, TaxonomyRow, ViewRow } from './schema';
 
 /** 出入库映射全部经过 shared schema 解析：表结构漂移会在边界被拦下。 */
 
@@ -99,6 +102,32 @@ export function taxonomyToRow(taxonomy: Taxonomy, userId: string): TaxonomyRow {
     purposes: parsed.purpose,
     statuses: parsed.status,
     updatedAt: parsed.updatedAt,
+  };
+}
+
+/** 快照 meta（列表项）：存档时间 + 展示口径条数。 */
+export function rowToSnapshotMeta(row: SnapshotRow): SnapshotMeta {
+  return { id: row.id, savedAt: row.savedAt, itemCount: row.itemCount };
+}
+
+/** 快照载荷出入过 shared schema：payload JSON 与表结构漂移在边界被拦下。 */
+export function rowToSnapshotArchive(payload: unknown): SnapshotArchive {
+  return SnapshotArchiveSchema.parse(payload);
+}
+
+export function snapshotArchiveToRow(
+  archive: SnapshotArchive,
+  userId: string,
+  id: string,
+  itemCount: number,
+): SnapshotRow {
+  const parsed = SnapshotArchiveSchema.parse(archive);
+  return {
+    id,
+    userId,
+    savedAt: parsed.savedAt,
+    itemCount,
+    payload: parsed,
   };
 }
 

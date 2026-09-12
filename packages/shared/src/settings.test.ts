@@ -14,7 +14,19 @@ describe('SettingsSchema（本地设置存储）', () => {
     expect(DEFAULT_SETTINGS.history).toHaveLength(0);
     expect(DEFAULT_SETTINGS.activeServerUrl).toBeNull();
     expect(DEFAULT_SETTINGS.session).toBeNull();
-    expect(DEFAULT_SETTINGS.lastSyncAt).toBeNull();
+  });
+
+  it('lastSyncAt 不再是全局设置（task-account-libraries T1：同步进度由各库自持）', () => {
+    expect('lastSyncAt' in DEFAULT_SETTINGS).toBe(false);
+    expect('lastSyncAt' in SettingsSchema.shape).toBe(false);
+  });
+
+  it('存量记录里遗留的 lastSyncAt 被 parse 剔除（升级兼容，不参与协议）', () => {
+    const parsed = SettingsSchema.parse({
+      ...DEFAULT_SETTINGS,
+      lastSyncAt: '2026-09-10T00:00:00.000Z',
+    });
+    expect('lastSyncAt' in parsed).toBe(false);
   });
 
   it('历史服务器记录：URL 必须合法、带 lastLoginAt（feat02 场景1：登录成功自动记录）', () => {

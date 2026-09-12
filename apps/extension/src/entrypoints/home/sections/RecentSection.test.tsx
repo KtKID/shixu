@@ -1,12 +1,26 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { createBookmark, type Bookmark } from '@x-threadpick/shared';
-import { db } from '../../../db/bookmarks';
+import { fakeBrowser } from 'wxt/testing/fake-browser';
+import { createBookmark, type Bookmark, type Session } from '@x-threadpick/shared';
+import {
+  currentLibrary,
+  resetLibraryRuntime,
+  writeLastSyncAt,
+  type LibraryDB,
+} from '../../../db/library';
+import { recordServerLogin } from '../../../db/settings';
 import RecentSection from './RecentSection';
+
+let db: LibraryDB;
 
 /** 相对时间与「今天」判定锚点；只 fake Date，保留真实计时器供 testing-library 使用。 */
 const NOW = new Date('2026-09-11T12:00:00');
 const DAY_MS = 86400000;
+const S1 = 'https://s1.example:8443';
+
+function sessionOf(email: string): Session {
+  return { email, serverUrl: S1, token: 'tok-1', expiresAt: '2030-01-01T00:00:00.000Z' };
+}
 
 interface SeedInput {
   url: string;
@@ -35,10 +49,25 @@ async function seed(input: SeedInput): Promise<void> {
   await db.bookmarks.add(bookmark);
 }
 
+/** 登录账号并把当前账号库推到「上次同步于 syncAgo 天前」，模拟已同步过的库。 */
+async function login(options: { email?: string; syncAgo?: number | null } = {}): Promise<void> {
+  await recordServerLogin(S1, sessionOf(options.email ?? 'a@x.com'));
+  db = await currentLibrary();
+  if (options.syncAgo !== null) {
+    await writeLastSyncAt(
+      db,
+      new Date(NOW.getTime() - (options.syncAgo ?? 1) * DAY_MS).toISOString(),
+    );
+  }
+}
+
 beforeEach(async () => {
   cleanup();
+  fakeBrowser.reset();
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(NOW);
+  await resetLibraryRuntime();
+  db = await currentLibrary();
   await db.bookmarks.clear();
   await db.taxonomies.clear();
 });
@@ -608,5 +637,193 @@ describe('页头：大标题 + 副标题（task-home-layout）', () => {
     const head = document.querySelector('.page-head');
     expect(head?.querySelector('.page-title')?.textContent).toBe('最近添加');
     expect(head?.querySelector('.page-tagline')?.textContent ?? '').not.toBe('');
+  });
+});
+
+describe('云朵同步标记（sync-archive feat03）', () => {
+  it('已同步：来源信息行末尾低对比度云朵，悬停显示「已同步 · <账号邮箱>」（场景1）', async () => {
+    await login({ email: 'a@x.com', syncAgo: 1 }); // 上次同步于 1 天前
+    await seed({ url: 'https://a.example/1', title: '旧收藏', daysAgo: 3 }); // 收藏早于上次同步
+    render(<RecentSection onNavigateImport={vi.fn()} />);
+
+    await screen.findByText('旧收藏');
+    const meta = document.querySelector('.bcard .bmeta');
+    expect(meta).not.toBeNull();
+    const cloud = meta?.querySelector('.sync-cloud');
+    expect(cloud).not.toBeNull();
+    expect(cloud?.className).toContain('synced');
+    expect(cloud?.getAttribute('title')).toBe('已同步 · a@x.com');
+    // 云朵在来源信息行末尾（域名 · 时间之后）
+    expect((meta?.textContent ?? '').indexOf('a.example')).toBeLessThan(
+      (meta?.textContent ?? '').indexOf('☁'),
+    );
+  });
+
+  it('待同步：云朵以醒目待同步样式显示，与已同步样式明显区分（场景2）', async () => {
+    await login({ syncAgo: 2 }); // 上次同步于 2 天前
+    await seed({ url: 'https://a.example/1', title: '刚收藏', daysAgo: 0 }); // 收藏晚于上次同步
+    render(<RecentSection onNavigateImport={vi.fn()} />);
+
+    await screen.findByText('刚收藏');
+    const cloud = document.querySelector('.bcard .bmeta .sync-cloud');
+    expect(cloud).not.toBeNull();
+    expect(cloud?.className).toContain('pending');
+    expect(cloud?.className).not.toContain('synced');
+  });
+
+  it('未登录：卡片上不出现任何同步标记（场景4）', async () => {
+    await seed({ url: 'https://a.example/1', title: '甲条', daysAgo: 0 });
+    render(<RecentSection onNavigateImport={vi.fn()} />);
+
+    await screen.findByText('甲条');
+    expect(document.querySelector('.sync-cloud')).toBeNull();
+  });
+});
+
+describe('收藏页头汇总行（sync-archive feat04）', () => {
+  it('已登录且全部同步：「N 条收藏 · 已全部同步」（场景1）', async () => {
+    await login({ syncAgo: 5 });
+    await seed({ url: 'https://a.example/1', title: '甲条', daysAgo: 7 });
+    await seed({ url: 'https://b.example/2', title: '乙条', daysAgo: 8 });
+    render(<RecentSection variant="library" onNavigateImport={vi.fn()} />);
+
+    await screen.findByText('甲条');
+    expect(screen.getByText('2 条收藏 · 已全部同步')).toBeTruthy();
+  });
+
+  it('已登录且部分待同步：「N 条收藏 · M 条待同步」（场景2）', async () => {
+    await login({ syncAgo: 5 });
+    await seed({ url: 'https://a.example/1', title: '甲条', daysAgo: 7 }); // 已同步
+    await seed({ url: 'https://b.example/2', title: '乙条', daysAgo: 3 }); // 待同步
+    await seed({ url: 'https://c.example/3', title: '丙条', daysAgo: 2 }); // 待同步
+    await seed({ url: 'https://d.example/4', title: '丁条', daysAgo: 1 }); // 待同步
+    render(<RecentSection variant="library" onNavigateImport={vi.fn()} />);
+
+    await screen.findByText('甲条');
+    expect(screen.getByText('4 条收藏 · 3 条待同步')).toBeTruthy();
+  });
+
+  it('未登录：只显示「N 条收藏」，不出现任何同步相关文字（场景3）', async () => {
+    await seed({ url: 'https://a.example/1', title: '甲条', daysAgo: 0 });
+    await seed({ url: 'https://b.example/2', title: '乙条', daysAgo: 1 });
+    render(<RecentSection variant="library" onNavigateImport={vi.fn()} />);
+
+    await screen.findByText('甲条');
+    expect(screen.getByText('2 条收藏')).toBeTruthy();
+    const summary = document.querySelector('.page-summary');
+    expect(summary?.textContent ?? '').not.toContain('同步');
+  });
+
+  it('收藏库为空：沿用现有空态，不显示汇总行（场景4）', async () => {
+    await login({ syncAgo: 1 });
+    render(<RecentSection variant="library" onNavigateImport={vi.fn()} />);
+
+    expect(await screen.findByText(/收藏库还是空的/)).toBeTruthy();
+    expect(document.querySelector('.page-summary')).toBeNull();
+  });
+
+  it('筛选与搜索时不改变汇总行：始终按整库口径统计', async () => {
+    await login({ syncAgo: 5 });
+    await seed({ url: 'https://a.example/1', title: '甲条', daysAgo: 7, topics: ['AI'] });
+    await seed({ url: 'https://b.example/2', title: '乙条', daysAgo: 3 });
+    render(<RecentSection variant="library" onNavigateImport={vi.fn()} />);
+
+    await screen.findByText('甲条');
+    fireEvent.click(screen.getByRole('button', { name: /^AI/ }));
+    expect(await screen.findByText('筛选结果 · 1 条命中')).toBeTruthy();
+    expect(screen.getByText('2 条收藏 · 1 条待同步')).toBeTruthy(); // 整库口径不随命中数变化
+  });
+});
+
+describe('同步状态免刷新翻转（sync-archive feat03 场景3/场景5）', () => {
+  it('后台同步完成（另一上下文写当前库 lastSyncAt）：云朵与汇总行即时翻转，无需刷新（场景3）', async () => {
+    await login({ syncAgo: 2 }); // 上次同步于 2 天前
+    await seed({ url: 'https://a.example/1', title: '刚收藏', daysAgo: 0 });
+    render(<RecentSection onNavigateImport={vi.fn()} />);
+
+    // 初始：待同步样式 + 汇总行报待同步
+    const cloud = await screen.findByTitle('待同步');
+    expect(cloud.className).toContain('pending');
+    expect(screen.getByText('1 条收藏 · 1 条待同步')).toBeTruthy();
+
+    // 自动同步在后台完成：写当前库 lastSyncAt = 现在（用户没有刷新页面）
+    await writeLastSyncAt(db, NOW.toISOString());
+
+    // 云朵翻转为已同步，汇总行即时更新
+    const flipped = await screen.findByTitle('已同步 · a@x.com');
+    expect(flipped.className).toContain('synced');
+    expect(screen.getByText('1 条收藏 · 已全部同步')).toBeTruthy();
+  });
+
+  it('同步失败（lastSyncAt 不推进）：云朵保持待同步样式，不误报已同步（场景5）', async () => {
+    await login({ syncAgo: 2 });
+    await seed({ url: 'https://a.example/1', title: '刚收藏', daysAgo: 0 });
+    render(<RecentSection onNavigateImport={vi.fn()} />);
+
+    await screen.findByTitle('待同步');
+    // 模拟一次失败的同步尝试：服务器不可达，本地只有无关写入（lastSyncAt 不动）
+    await db.meta.put({ key: 'unrelated', value: 'x' });
+    await new Promise((resolve) => setTimeout(resolve, 30)); // 真实计时器：给任何误订阅留触发窗口
+
+    expect(screen.getByTitle('待同步')).toBeTruthy();
+    expect(screen.queryByTitle(/已同步/)).toBeNull();
+    expect(screen.getByText('1 条收藏 · 1 条待同步')).toBeTruthy();
+  });
+
+  it('未登录：不建立 lastSyncAt 订阅，default 库写入不产生同步元素（feat01 场景1）', async () => {
+    await seed({ url: 'https://a.example/1', title: '甲条', daysAgo: 0 });
+    render(<RecentSection onNavigateImport={vi.fn()} />);
+
+    await screen.findByText('甲条');
+    await db.meta.put({ key: 'lastSyncAt', value: NOW.toISOString() });
+    await new Promise((resolve) => setTimeout(resolve, 30));
+
+    expect(document.querySelector('.sync-cloud')).toBeNull();
+    expect(screen.getByText('1 条收藏')).toBeTruthy(); // 未登录汇总行永远只有条数
+  });
+});
+
+describe('按「待同步」筛选（sync-archive feat06）', () => {
+  it('点击「待同步」：列表只剩待同步条目，标题「筛选结果 · N 条命中」，可一键清除（场景1）', async () => {
+    await login({ syncAgo: 5 });
+    await seed({ url: 'https://a.example/1', title: '旧甲', daysAgo: 7 }); // 已同步
+    await seed({ url: 'https://b.example/2', title: '新乙', daysAgo: 3 }); // 待同步
+    await seed({ url: 'https://c.example/3', title: '新丙', daysAgo: 1 }); // 待同步
+    render(<RecentSection variant="library" onNavigateImport={vi.fn()} />);
+
+    await screen.findByText('旧甲');
+    fireEvent.click(screen.getByRole('button', { name: '待同步' }));
+
+    expect(await screen.findByText('筛选结果 · 2 条命中')).toBeTruthy();
+    const titles = Array.from(document.querySelectorAll('.bcard .btitle')).map(
+      (el) => el.textContent ?? '',
+    );
+    expect(titles).toEqual(['新丙', '新乙']); // 收藏时间新到旧
+    expect(screen.queryByText('旧甲')).toBeNull();
+    // 复用清除交互
+    fireEvent.click(screen.getByRole('button', { name: '清除全部筛选' }));
+    expect(await screen.findByText('全部收藏')).toBeTruthy();
+    expect(screen.getByText('旧甲')).toBeTruthy();
+  });
+
+  it('全部已同步时点击「待同步」：空态「没有待同步的收藏，一切都已在服务器上」（场景2）', async () => {
+    await login({ syncAgo: 1 });
+    await seed({ url: 'https://a.example/1', title: '旧甲', daysAgo: 3 }); // 早于上次同步
+    render(<RecentSection variant="library" onNavigateImport={vi.fn()} />);
+
+    await screen.findByText('旧甲');
+    fireEvent.click(screen.getByRole('button', { name: '待同步' }));
+
+    expect(await screen.findByText('没有待同步的收藏，一切都已在服务器上')).toBeTruthy();
+    expect(document.querySelectorAll('.bcard')).toHaveLength(0);
+    expect(screen.getByText('筛选结果 · 0 条命中')).toBeTruthy();
+  });
+
+  it('未登录：筛选区不出现「待同步」入口（场景3）', async () => {
+    await seed({ url: 'https://a.example/1', title: '甲条', daysAgo: 0 });
+    render(<RecentSection variant="library" onNavigateImport={vi.fn()} />);
+
+    await screen.findByText('甲条');
+    expect(screen.queryByRole('button', { name: '待同步' })).toBeNull();
   });
 });

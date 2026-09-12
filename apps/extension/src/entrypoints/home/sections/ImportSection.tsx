@@ -10,6 +10,8 @@ import {
  * 「导入已有书签」（homepage feat03）：原独立导入器能力搬进主页导航条目，用户可感知行为不变。
  * 链路：bookmarks.getTree → lib/bookmark-tree 展平（携带文件夹路径）→ 搜索标题/URL → 勾选
  * → db/bookmarks.importBookmarks（URL 规范化判重、默认 Inbox）→ 结果反馈计数。
+ * 多库架构（task-account-libraries T8）：importBookmarks 经当前库句柄写入——
+ * 未登录进 default 库、登录进当前账号库；App 层以 libraryKey remount 本组件保证切换后状态归零。
  */
 
 type LoadState = { status: 'loading' } | { status: 'ready'; bookmarks: FlatBookmark[] };

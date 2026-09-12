@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import type { Browser } from 'wxt/browser';
 import { createBookmark } from '@x-threadpick/shared';
-import { db } from '../../../db/bookmarks';
+import { currentLibrary, resetLibraryRuntime, type LibraryDB } from '../../../db/library';
 import { loadSettings } from '../../../db/settings';
 import App from '../App';
 import ImportSection from './ImportSection';
@@ -37,11 +37,16 @@ function mockBookmarkTree(nodes: TreeNode[]): void {
 // 直接赋值的 mock 不会被 restoreAllMocks 还原，beforeEach 里显式还原
 const realGetTree = browser.bookmarks.getTree;
 
+// 每个测试前重新解析当前库句柄（多库架构：db 不再是模块级单例）
+let db: LibraryDB;
+
 beforeEach(async () => {
   cleanup();
   vi.restoreAllMocks();
   fakeBrowser.reset();
   browser.bookmarks.getTree = realGetTree;
+  await resetLibraryRuntime();
+  db = await currentLibrary();
   await db.bookmarks.clear();
   await db.taxonomies.clear();
 });

@@ -53,4 +53,16 @@ describe('主页布局契约（task-home-layout）', () => {
     expect(match?.[1]).not.toContain('border');
     expect(match?.[1]).not.toContain('background');
   });
+
+  it('云朵同步标记两态存在且明显区分（sync-archive feat03 场景1/场景2）', () => {
+    const synced = css.match(/\.sync-cloud\.synced\s*\{([^}]*)\}/);
+    const pending = css.match(/\.sync-cloud\.pending\s*\{([^}]*)\}/);
+    expect(synced).not.toBeNull();
+    expect(pending).not.toBeNull();
+    // 已同步低调：与来源信息行同灰阶（--ink-faint）
+    expect(synced?.[1]).toContain('var(--ink-faint)');
+    // 待同步醒目：强调色（--accent-ink），与已同步明显区分
+    expect(pending?.[1]).toContain('var(--accent-ink)');
+    expect(synced?.[1]).not.toContain('var(--accent-ink)');
+  });
 });

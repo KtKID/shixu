@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Settings } from '@x-threadpick/shared';
-import { loadSettings } from '../../db/settings';
+import { accountKey, loadSettings } from '../../db/settings';
+import { DEFAULT_LIBRARY_KEY } from '../../db/library';
 import { buildBaseUrl, splitBaseUrl } from '../../components/settings/api';
 import AccountCard from '../../components/settings/AccountCard';
 import DimensionsCard from '../../components/settings/DimensionsCard';
 import ServerCard from '../../components/settings/ServerCard';
+import SnapshotCard from '../../components/settings/SnapshotCard';
 import RecentSection from './sections/RecentSection';
 import ImportSection from './sections/ImportSection';
 
@@ -14,6 +16,9 @@ import ImportSection from './sections/ImportSection';
  * 地址 hash 指定初始条目（#network 等），供 popup「设置」按钮直达（feat01 场景2）。
  * 切换条目时 hash 跟随回写并产生浏览历史，hashchange（手动改地址/前进后退）反向同步选中条目（feat02 场景5）。
  * 「网络连接」「分类维度」内的行为沿用《设置页面》spec，卡片自原 settings entrypoint 迁入公共目录。
+ * 多库架构（sync-archive feat01 / task-account-libraries T8）：数据分区按当前库键 remount——
+ * 登录、登出、切换账号后界面立即换库（settings 派生 libraryKey，各库互不混入）；
+ * 设置未载入前不渲染数据分区，避免登录用户的界面上闪过 default 库内容。
  */
 
 export type SectionKey = 'recent' | 'library' | 'network' | 'dimensions' | 'import';
@@ -66,6 +71,14 @@ export default function App({ initialSection = 'recent' }: { initialSection?: Se
 
   const currentBaseUrl = useMemo(() => buildBaseUrl(host, port), [host, port]);
 
+  // 当前库键：登录 = 账号键，未登录 = default；settings 未载入 = null（数据分区暂不渲染）
+  const libraryKey =
+    settings !== null && settings.session !== null
+      ? accountKey(settings.session)
+      : settings !== null
+        ? DEFAULT_LIBRARY_KEY
+        : null;
+
   return (
     <div className="shell">
       <aside className="sidebar">
@@ -103,14 +116,19 @@ export default function App({ initialSection = 'recent' }: { initialSection?: Se
 
       <main className="main">
         <div className="main-inner">
-          {section === 'recent' && (
+          {libraryKey === null && section !== 'network' && <p className="loading">正在载入…</p>}
+          {section === 'recent' && libraryKey !== null && (
             <section className="section" aria-label="最近新增">
-              <RecentSection onNavigateImport={() => navigate('import')} />
+              <RecentSection key={libraryKey} onNavigateImport={() => navigate('import')} />
             </section>
           )}
-          {section === 'library' && (
+          {section === 'library' && libraryKey !== null && (
             <section className="section" aria-label="全部收藏">
-              <RecentSection variant="library" onNavigateImport={() => navigate('import')} />
+              <RecentSection
+                key={libraryKey}
+                variant="library"
+                onNavigateImport={() => navigate('import')}
+              />
             </section>
           )}
           {section === 'network' && (
@@ -132,18 +150,20 @@ export default function App({ initialSection = 'recent' }: { initialSection?: Se
                     currentBaseUrl={currentBaseUrl}
                     onSettingsChange={setSettings}
                   />
+                  {/* 快照存档（sync-archive feat07/feat08）：挂在账号卡下方 */}
+                  <SnapshotCard settings={settings} />
                 </>
               )}
             </section>
           )}
-          {section === 'dimensions' && (
+          {section === 'dimensions' && libraryKey !== null && (
             <section className="section" aria-label="分类维度">
-              <DimensionsCard />
+              <DimensionsCard key={libraryKey} />
             </section>
           )}
-          {section === 'import' && (
+          {section === 'import' && libraryKey !== null && (
             <section className="section" aria-label="导入已有书签">
-              <ImportSection />
+              <ImportSection key={libraryKey} />
             </section>
           )}
         </div>
