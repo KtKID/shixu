@@ -51,6 +51,14 @@ describe('主页布局契约（task-home-layout）', () => {
     expect(bare).toEqual([]);
   });
 
+  it('自动同步 checkbox 与文字垂直对齐：固定 14px、去 UA margin、主题 accent 色（用户视觉反馈）', () => {
+    const match = cardsCss.match(/\.check-inline input\[type='checkbox'\]\s*\{([^}]*)\}/);
+    expect(match).not.toBeNull();
+    expect(match?.[1]).toContain('width: 14px');
+    expect(match?.[1]).toContain('margin: 0');
+    expect(match?.[1]).toContain('accent-color: var(--accent)');
+  });
+
   it('⌘K 提示为纯文本：.searchbox-kbd 不设边框与背景（用户视觉反馈）', () => {
     const match = css.match(/\.searchbox-kbd\s*\{([^}]*)\}/);
     expect(match).not.toBeNull();
