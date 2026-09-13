@@ -91,11 +91,17 @@ syncRoutes.post('/', async (c) => {
         .get();
       // last-write-wins：仅当推送方更新时间更新时落库
       if (existing !== undefined && existing.updatedAt >= bookmark.updatedAt) continue;
-      tx.insert(bookmarks)
+      const result = tx
+        .insert(bookmarks)
         .values(bookmarkToRow(bookmark, userId))
-        .onConflictDoUpdate({ target: bookmarks.id, set: bookmarkToRow(bookmark, userId) })
+        .onConflictDoUpdate({
+          target: bookmarks.id,
+          set: bookmarkToRow(bookmark, userId),
+          // 冲突行不属于当前用户时拒写：id 全局唯一，跨账号同 id 推送不得夺取他人数据（CR B1）
+          setWhere: eq(bookmarks.userId, userId),
+        })
         .run();
-      appliedBookmarks++;
+      if (result.changes > 0) appliedBookmarks++;
     }
 
     for (const view of body.views) {
@@ -105,11 +111,17 @@ syncRoutes.post('/', async (c) => {
         .where(and(eq(views.id, view.id), eq(views.userId, userId)))
         .get();
       if (existing !== undefined && existing.updatedAt >= view.updatedAt) continue;
-      tx.insert(views)
+      const result = tx
+        .insert(views)
         .values(viewToRow(view, userId))
-        .onConflictDoUpdate({ target: views.id, set: viewToRow(view, userId) })
+        .onConflictDoUpdate({
+          target: views.id,
+          set: viewToRow(view, userId),
+          // 同 bookmarks：冲突行不属于当前用户时拒写（CR B1）
+          setWhere: eq(views.userId, userId),
+        })
         .run();
-      appliedViews++;
+      if (result.changes > 0) appliedViews++;
     }
 
     // taxonomy 整体 LWW：仅当提交方 updatedAt 更新才落库（同 PUT /taxonomy）

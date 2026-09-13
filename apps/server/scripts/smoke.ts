@@ -11,7 +11,8 @@ import {
 /**
  * 端到端冒烟（feat05，task-server-overview T4）：
  * 注册 → 推送 3 条书签 → pull 断言 bookmarksTotal 与推送数一致（3）且书签齐全
- * → 追加推送 1 条墓碑 → pull 断言 bookmarksTotal 不变（未删除口径，feat02）。
+ * → 追加推送 1 条墓碑 → pull 断言 bookmarksTotal 不变（未删除口径，feat02）
+ * → 双账号隔离（CR B1 回归）：账号 B 以账号 A 已有的书签 id 推送，A 的行不得被夺取或改写。
  * 全程真实 HTTP + shared schema 校验；账号经 /auth/register 现场创建，无需 CLI。
  * 前置：server 已启动（SMOKE_BASE_URL，默认 127.0.0.1:60024），且运行的是含
  * bookmarksTotal 的当前代码（旧进程会因响应缺字段解析失败，重启即可）。
@@ -87,7 +88,51 @@ async function main(): Promise<void> {
     );
   }
 
-  console.log('SMOKE OK: 注册 → 推送 3 条 → bookmarksTotal=3 一致 → 墓碑不计入验证通过');
+  // 双账号隔离（CR B1 回归）：B 以 A 已有的书签 id 推送 → 拒写（applied=0），A 的行原样保留
+  const victim = active[0];
+  if (victim === undefined) throw new Error('推送列表为空');
+  const emailB = `smoke-${randomUUID()}@example.com`;
+  const registerResB = await fetch(`${baseUrl}/auth/register`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email: emailB, password }),
+  });
+  if (!registerResB.ok) throw new Error(`注册账号 B 失败: ${registerResB.status}`);
+  const { token: tokenB } = LoginResponseSchema.parse(await registerResB.json());
+  const authB = { 'content-type': 'application/json', authorization: `Bearer ${tokenB}` };
+
+  const pushResB = await fetch(`${baseUrl}/sync`, {
+    method: 'POST',
+    headers: authB,
+    body: JSON.stringify(
+      SyncPushRequestSchema.parse({
+        bookmarks: [{ ...victim, title: 'B 冒名覆盖' }],
+        views: [],
+      }),
+    ),
+  });
+  if (!pushResB.ok) throw new Error(`账号 B 推送失败: ${pushResB.status}`);
+  const pushedB = SyncPushResponseSchema.parse(await pushResB.json());
+  if (pushedB.applied.bookmarks !== 0) {
+    throw new Error(`跨账号同 id 推送应被拒写（applied=0），实际 ${pushedB.applied.bookmarks}`);
+  }
+  const pulledForA = await pullTotal(token);
+  const victimAfter = pulledForA.bookmarks.find((b) => b.id === victim.id);
+  if (
+    victimAfter === undefined ||
+    victimAfter.title !== victim.title ||
+    victimAfter.url !== victim.url
+  ) {
+    throw new Error('账号 A 的书签被账号 B 的同 id 推送改写或夺走（隔离被击穿，CR B1）');
+  }
+  const pulledForB = await pullTotal(tokenB);
+  if (pulledForB.bookmarks.some((b) => b.id === victim.id)) {
+    throw new Error('账号 B 的库里出现了账号 A 的书签（隔离被击穿，CR B1）');
+  }
+
+  console.log(
+    'SMOKE OK: 注册 → 推送 3 条 → bookmarksTotal=3 一致 → 墓碑不计入 → 双账号同 id 隔离验证通过',
+  );
 }
 
 main().catch((err: unknown) => {
