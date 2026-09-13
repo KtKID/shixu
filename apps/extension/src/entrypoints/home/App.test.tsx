@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { createBookmark, type Session, type Settings } from '@x-threadpick/shared';
 import type * as apiModule from '../../components/settings/api';
@@ -87,16 +87,17 @@ beforeEach(async () => {
 });
 
 describe('主页左侧导航（feat02 场景1 / 场景3）', () => {
-  it('导航条目从上到下依次为五项（feat07 增补「全部收藏」），默认选中「最近新增」', () => {
+  it('导航条目从上到下依次为六项（feat07「全部收藏」/ feat-newtab「通用」），默认选中「最近新增」', () => {
     render(<App />);
 
     const items = screen.getByRole('navigation', { name: '主导航' }).querySelectorAll('.nav-item');
-    expect(items).toHaveLength(5);
+    expect(items).toHaveLength(6);
     expect(items[0]?.textContent).toContain('最近新增');
     expect(items[1]?.textContent).toContain('全部收藏');
     expect(items[2]?.textContent).toContain('网络连接');
     expect(items[3]?.textContent).toContain('分类维度');
     expect(items[4]?.textContent).toContain('导入已有书签');
+    expect(items[5]?.textContent).toContain('通用');
     expect(items[0]?.classList.contains('active')).toBe(true);
     expect(items[0]?.getAttribute('aria-current')).toBe('page');
     expect(items[1]?.getAttribute('aria-current')).toBeNull();
@@ -108,7 +109,7 @@ describe('主页左侧导航（feat02 场景1 / 场景3）', () => {
     const nav = screen.getByRole('navigation', { name: '主导航' });
     expect(screen.queryByText('视图')).toBeNull();
     expect(screen.queryByText('回收站')).toBeNull();
-    expect(nav.querySelectorAll('.nav-item')).toHaveLength(5);
+    expect(nav.querySelectorAll('.nav-item')).toHaveLength(6);
   });
 
   it('点击条目切换选中分区', () => {
@@ -331,5 +332,27 @@ describe('多库切换刷新（sync-archive feat01 / task-account-libraries T8�
     expect(screen.queryByText('A 云端 1')).toBeNull(); // A 的内容不进 B 的界面
     const settingsAfter: Settings = await loadSettings();
     expect(settingsAfter.session?.email).toBe('b@x.com');
+  });
+});
+
+describe('「通用」分区（feat-newtab）', () => {
+  it('点击「通用」显示新标签页卡：勾选框默认不勾选，勾选后写入设置', async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '通用' }));
+    expect(await screen.findByText('新建标签页时打开拾绪')).toBeTruthy();
+    const box = screen.getByRole('checkbox');
+    if (!(box instanceof HTMLInputElement)) throw new Error('找不到勾选框');
+    expect(box.checked).toBe(false);
+
+    fireEvent.click(box);
+    await waitFor(async () => expect((await loadSettings()).newtabEnabled).toBe(true));
+  });
+
+  it('「通用」不受登录状态影响：未登录也能进入并看到新标签页卡', async () => {
+    render(<App initialSection="general" />);
+
+    expect(await screen.findByText('新建标签页时打开拾绪')).toBeTruthy();
+    expect(screen.queryByText('正在载入…')).toBeNull();
   });
 });

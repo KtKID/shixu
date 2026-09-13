@@ -5,6 +5,7 @@ import { DEFAULT_LIBRARY_KEY } from '../../db/library';
 import { buildBaseUrl, splitBaseUrl } from '../../components/settings/api';
 import AccountCard from '../../components/settings/AccountCard';
 import DimensionsCard from '../../components/settings/DimensionsCard';
+import NewTabCard from '../../components/settings/NewTabCard';
 import ServerCard from '../../components/settings/ServerCard';
 import SnapshotCard from '../../components/settings/SnapshotCard';
 import RecentSection from './sections/RecentSection';
@@ -21,7 +22,7 @@ import ImportSection from './sections/ImportSection';
  * 设置未载入前不渲染数据分区，避免登录用户的界面上闪过 default 库内容。
  */
 
-export type SectionKey = 'recent' | 'library' | 'network' | 'dimensions' | 'import';
+export type SectionKey = 'recent' | 'library' | 'network' | 'dimensions' | 'import' | 'general';
 
 const SECTIONS: readonly { key: SectionKey; label: string; icon: string }[] = [
   { key: 'recent', label: '最近新增', icon: '⌂' },
@@ -29,6 +30,7 @@ const SECTIONS: readonly { key: SectionKey; label: string; icon: string }[] = [
   { key: 'network', label: '网络连接', icon: '⟡' },
   { key: 'dimensions', label: '分类维度', icon: '❖' },
   { key: 'import', label: '导入已有书签', icon: '⇩' },
+  { key: 'general', label: '通用', icon: '⚙' },
 ];
 
 /** '#network' → 'network'；空或未知值回退默认条目「最近新增」。 */
@@ -116,7 +118,9 @@ export default function App({ initialSection = 'recent' }: { initialSection?: Se
 
       <main className="main">
         <div className="main-inner">
-          {libraryKey === null && section !== 'network' && <p className="loading">正在载入…</p>}
+          {libraryKey === null && section !== 'network' && section !== 'general' && (
+            <p className="loading">正在载入…</p>
+          )}
           {section === 'recent' && libraryKey !== null && (
             <section className="section" aria-label="最近新增">
               <RecentSection key={libraryKey} onNavigateImport={() => navigate('import')} />
@@ -164,6 +168,15 @@ export default function App({ initialSection = 'recent' }: { initialSection?: Se
           {section === 'import' && libraryKey !== null && (
             <section className="section" aria-label="导入已有书签">
               <ImportSection key={libraryKey} />
+            </section>
+          )}
+          {section === 'general' && (
+            <section className="section" aria-label="通用">
+              {settings === null ? (
+                <p className="loading">正在载入设置…</p>
+              ) : (
+                <NewTabCard settings={settings} onSettingsChange={setSettings} />
+              )}
             </section>
           )}
         </div>

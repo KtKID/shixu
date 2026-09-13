@@ -21,6 +21,12 @@ describe('SettingsSchema（本地设置存储）', () => {
     expect('lastSyncAt' in SettingsSchema.shape).toBe(false);
   });
 
+  it('newtabEnabled 默认关：旧记录缺字段 parse 补 false，浏览器新标签页默认不被干预（feat-newtab）', () => {
+    expect(DEFAULT_SETTINGS.newtabEnabled).toBe(false);
+    const legacy = SettingsSchema.parse({ activeServerUrl: null, history: [], session: null });
+    expect(legacy.newtabEnabled).toBe(false);
+  });
+
   it('存量记录里遗留的 lastSyncAt 被 parse 剔除（升级兼容，不参与协议）', () => {
     const parsed = SettingsSchema.parse({
       ...DEFAULT_SETTINGS,

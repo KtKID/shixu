@@ -8,6 +8,7 @@ import {
   removeServerRecord,
   setActiveServer,
   setAutoSync,
+  setNewtabEnabled,
   accountKey,
   updateServerRecord,
 } from './settings';
@@ -172,5 +173,19 @@ describe('自动同步开关按账号记忆（feat11）', () => {
     await setAutoSync(accountKey(session), true);
     const next = await setAutoSync(accountKey(session), false);
     expect(next.autoSync[accountKey(session)]).toBe(false);
+  });
+});
+
+describe('新标签页接管开关（feat-newtab）', () => {
+  it('默认 false；勾选/取消即时写回，且不影响其他设置字段', async () => {
+    await recordServerLogin(S1, makeSession(S1));
+    expect((await loadSettings()).newtabEnabled).toBe(false);
+    const enabled = await setNewtabEnabled(true);
+    expect(enabled.newtabEnabled).toBe(true);
+    expect(enabled.session).not.toBeNull();
+    expect((await loadSettings()).newtabEnabled).toBe(true);
+    const disabled = await setNewtabEnabled(false);
+    expect(disabled.newtabEnabled).toBe(false);
+    expect(disabled.history).toHaveLength(1);
   });
 });

@@ -26,6 +26,12 @@ export const SettingsSchema = z.object({
   session: SessionSchema.nullable(),
   /** 自动同步开关，按账号记忆：key = `${serverUrl}#${email}`（feat11 场景3/4）。缺省补 {}（兼容旧记录）。 */
   autoSync: z.record(z.string(), z.boolean()).default({}),
+  /**
+   * 新标签页接管开关（feat-newtab）：勾选后 background 把「手动新建的空白新标签页」换成收藏主页。
+   * 不经 chrome_url_overrides——manifest 覆盖安装即生效、无法跟设置开关联动；
+   * 缺省 false = 完全不干预浏览器新标签页（兼容旧记录），取消勾选立即恢复原生行为。
+   */
+  newtabEnabled: z.boolean().default(false),
 });
 export type Settings = z.infer<typeof SettingsSchema>;
 
@@ -34,6 +40,7 @@ export const DEFAULT_SETTINGS: Settings = {
   history: [],
   session: null,
   autoSync: {},
+  newtabEnabled: false,
 };
 
 /**

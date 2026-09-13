@@ -11,3 +11,6 @@ pnpm-lock.yaml
 
 # 自包含设计稿（base64 内嵌图片，非手写维护格式）
 docs/assets/卡片备选方案.html
+
+# 自动生成的报告工件（CR/fix 等流程产物，非手写维护）
+reports

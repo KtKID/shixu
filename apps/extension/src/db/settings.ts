@@ -119,3 +119,11 @@ export async function setAutoSync(key: string, enabled: boolean): Promise<Settin
   await saveSettings(next);
   return next;
 }
+
+/** 新标签页接管开关（feat-newtab）：勾选后 background 把手动新建的空白标签页换成收藏主页。 */
+export async function setNewtabEnabled(enabled: boolean): Promise<Settings> {
+  const current = await loadSettings();
+  const next: Settings = SettingsSchema.parse({ ...current, newtabEnabled: enabled });
+  await saveSettings(next);
+  return next;
+}

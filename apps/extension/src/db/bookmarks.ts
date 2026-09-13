@@ -20,11 +20,14 @@ export interface ImportOutcome {
   invalid: number;
 }
 
-/** 行解析：损坏记录警告后跳过（null）。 */
+/** 行解析：损坏记录警告后跳过（null）。日志带记录标识与具体 issue，便于定位是哪条数据坏在哪。 */
 export function parseStoredBookmark(row: Bookmark): Bookmark | null {
   const result = BookmarkSchema.safeParse(row);
   if (!result.success) {
-    console.warn('[x-threadpick] 本地记录校验失败，已忽略', result.error.issues);
+    console.warn(
+      '[x-threadpick] 本地记录校验失败，已忽略',
+      JSON.stringify({ id: row.id, url: row.url, issues: result.error.issues }),
+    );
     return null;
   }
   return result.data;
