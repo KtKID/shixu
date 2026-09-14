@@ -6,7 +6,7 @@ export default defineConfig({
   outDir: 'dist',
   modules: ['@wxt-dev/module-react'],
   manifest: {
-    name: 'x-threadpick',
+    name: '拾绪',
     description: '个人上下文记忆层：多维书签，保存即敢关 Tab',
     // activeTab：快捷键/图标唤起时读取当前活动标签的 url 与 title（无安装警告）
     // tabs：读 pendingUrl 识别「手动新建的空白新标签页」实现可开关的新标签页接管（feat-newtab）
