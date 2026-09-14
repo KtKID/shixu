@@ -27,7 +27,7 @@ export default function NewTabCard({ settings, onSettingsChange }: Props) {
         </div>
       </div>
       <p className="card-desc">
-        把浏览器的新标签页换成拾绪收藏主页（默认落在「最近新增」）。只替换手动新建的空白标签页，
+        把浏览器的新标签页换成拾绪收藏主页（落在「全部收藏」）。只替换手动新建的空白标签页，
         点链接、恢复会话打开的页面不受影响。
       </p>
       <div className="actions">

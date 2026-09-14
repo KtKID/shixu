@@ -11,7 +11,7 @@ import {
 import { recordServerLogin } from '../../../db/settings';
 import { ensureBookmarkIcons } from '../../../db/icons';
 import { iconPathFor, putResource } from '../../../db/resources';
-import RecentSection from './RecentSection';
+import LibrarySection from './LibrarySection';
 
 /** 挂载时的图标回填不打真实网络（task-card-brand-icon）；回填行为本身在 db/icons.test.ts 覆盖。 */
 vi.mock('../../../db/icons', () => ({
@@ -86,49 +86,26 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe('「最近新增」默认展示（feat04 场景1）', () => {
-  it('标题为「最近添加」，按收藏时间从新到旧展示最近 3 条，下方提示筛选文案', async () => {
-    for (const item of [
-      { url: 'https://a.example/1', title: '第一条', daysAgo: 0 },
-      { url: 'https://b.example/2', title: '第二条', daysAgo: 1 },
-      { url: 'https://c.example/3', title: '第三条', daysAgo: 2 },
-      { url: 'https://d.example/4', title: '第四条', daysAgo: 3 },
-      { url: 'https://e.example/5', title: '第五条', daysAgo: 4 },
-    ]) {
-      await seed(item);
-    }
-    const onNavigateImport = vi.fn();
-    render(<RecentSection onNavigateImport={onNavigateImport} />);
-
-    expect(await screen.findByText('第一条')).toBeTruthy();
-    expect(screen.getByText('最近添加')).toBeTruthy();
-    expect(screen.getByText(/选择上方标签开始按维度筛选/)).toBeTruthy();
-    // 未选择任何筛选时不展开全部列表：只显示最近 3 张卡，且最新的三条
-    const titles = Array.from(document.querySelectorAll('.bcard .btitle')).map(
-      (el) => el.textContent ?? '',
-    );
-    expect(titles).toEqual(['第一条', '第二条', '第三条']);
-  });
-
+describe('默认视图排序（feat07 场景1）', () => {
   it('卡片顺序从新到旧（乱序入库后仍按收藏时间排列）', async () => {
     await seed({ url: 'https://old.example', title: '旧的', daysAgo: 9 });
     await seed({ url: 'https://new.example', title: '新的', daysAgo: 0 });
     await seed({ url: 'https://mid.example', title: '中间的', daysAgo: 5 });
 
-    render(<RecentSection onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
 
     const titles = (await screen.findAllByText(/的$/)).map((el) => el.textContent ?? '');
     expect(titles).toEqual(['新的', '中间的', '旧的']);
   });
 });
 
-describe('相对时间边界（feat04 场景2 / T4）', () => {
+describe('相对时间边界', () => {
   it('今天 / 昨天 / N 天前', async () => {
     await seed({ url: 'https://a.example/t', title: '今天条', daysAgo: 0 });
     await seed({ url: 'https://b.example/y', title: '昨天条', daysAgo: 1 });
     await seed({ url: 'https://c.example/n', title: 'N天条', daysAgo: 2 });
 
-    render(<RecentSection onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
 
     // 品牌卡（task-card-brand-icon）：域名在品牌行、时间在 meta 行，同卡各自存在
     await screen.findByText('今天条');
@@ -143,7 +120,7 @@ describe('相对时间边界（feat04 场景2 / T4）', () => {
   it('跨月的日期按自然日差计算（8月31日收藏 → 2 天前）', async () => {
     await seed({ url: 'https://m.example/x', title: '跨月条', daysAgo: 2 });
 
-    render(<RecentSection onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
 
     const card = await screen.findByRole('link');
     expect(card.querySelector('.bdomain')?.textContent).toBe('m.example');
@@ -151,7 +128,7 @@ describe('相对时间边界（feat04 场景2 / T4）', () => {
   });
 });
 
-describe('每条收藏的展示内容（feat04 场景2）', () => {
+describe('每条收藏的展示内容', () => {
   it('品牌卡：小图标（无图标时小首字母色块）+ 域名行、标题、时间、理由与分类标签', async () => {
     await seed({
       url: 'https://github.com/x/worlddreamer',
@@ -163,7 +140,7 @@ describe('每条收藏的展示内容（feat04 场景2）', () => {
       status: '进行中',
     });
 
-    render(<RecentSection onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
 
     const card = await screen.findByRole('link');
     expect(card.textContent).toContain('WorldDreamer: Interactive World Models');
@@ -191,7 +168,7 @@ describe('每条收藏的展示内容（feat04 场景2）', () => {
       iconUrl: 'https://kimi.com/icon.png',
     });
 
-    render(<RecentSection onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
 
     const card = await screen.findByRole('link');
     const icon = card.querySelector<HTMLImageElement>('img.brandicon');
@@ -209,7 +186,7 @@ describe('每条收藏的展示内容（feat04 场景2）', () => {
     });
     await putResource(iconPathFor('https://kimi.com/en'), 'data:image/png;base64,AAA');
 
-    render(<RecentSection onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
 
     const card = await screen.findByRole('link');
     await waitFor(() => {
@@ -227,7 +204,7 @@ describe('每条收藏的展示内容（feat04 场景2）', () => {
       iconUrl: 'https://kimi.com/broken.png',
     });
 
-    render(<RecentSection onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
 
     const card = await screen.findByRole('link');
     const icon = card.querySelector<HTMLImageElement>('img.brandicon');
@@ -240,7 +217,7 @@ describe('每条收藏的展示内容（feat04 场景2）', () => {
   it('打开视图时触发一轮图标回填（已有收藏自动补取）', async () => {
     await seed({ url: 'https://a.example/t', title: '一条', daysAgo: 0 });
 
-    render(<RecentSection onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
 
     await screen.findByText('一条');
     expect(ensureBookmarkIcons).toHaveBeenCalled();
@@ -249,7 +226,7 @@ describe('每条收藏的展示内容（feat04 场景2）', () => {
   it('标题为空时回退展示网址，小色块取网址首字母', async () => {
     await seed({ url: 'https://bare.example/only-url', title: '', daysAgo: 0 });
 
-    render(<RecentSection onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
 
     const card = await screen.findByRole('link');
     expect(card.textContent).toContain('https://bare.example/only-url');
@@ -265,7 +242,7 @@ describe('每条收藏的展示内容（feat04 场景2）', () => {
       note: '理由内容',
     });
 
-    render(<RecentSection onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
 
     await screen.findByText('有理由');
     const cards = document.querySelectorAll('.bcard');
@@ -275,10 +252,10 @@ describe('每条收藏的展示内容（feat04 场景2）', () => {
   });
 });
 
-describe('空收藏库（feat04 场景3）', () => {
+describe('空收藏库', () => {
   it('显示空状态提示，并提供去「导入已有书签」的引导入口', async () => {
     const onNavigateImport = vi.fn();
-    render(<RecentSection onNavigateImport={onNavigateImport} />);
+    render(<LibrarySection onNavigateImport={onNavigateImport} />);
 
     expect(await screen.findByText(/收藏库还是空的/)).toBeTruthy();
     const guide = screen.getByRole('button', { name: /导入已有书签/ });
@@ -289,11 +266,11 @@ describe('空收藏库（feat04 场景3）', () => {
   });
 });
 
-describe('打开原网页（feat04 场景4）', () => {
+describe('打开原网页', () => {
   it('点击卡片在新标签页打开该收藏的原网址', async () => {
     await seed({ url: 'https://open.example/target', title: '目标页', daysAgo: 0 });
 
-    render(<RecentSection onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
 
     const link = await screen.findByRole('link');
     expect(link.getAttribute('href')).toBe('https://open.example/target');
@@ -314,14 +291,13 @@ describe('四维筛选集成（feat05 场景1）', () => {
     });
     await seed({ url: 'https://d.example/4', title: '丁条', daysAgo: 3 }); // 无主题
 
-    render(<RecentSection onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
     await screen.findByText('甲条');
 
     // 主题「项目管理」与「会议纪要」都在默认 taxonomy 候选里；选「项目管理」→ 甲、丙命中
     fireEvent.click(screen.getByRole('button', { name: /^项目管理/ }));
     expect(await screen.findByText('筛选结果 · 2 条命中')).toBeTruthy();
-    expect(screen.queryByText('最近添加')).toBeNull();
-    expect(screen.queryByText(/选择上方标签开始按维度筛选/)).toBeNull(); // 筛选态不再显示默认 hint
+    expect(screen.queryByText('全部收藏')).toBeNull();
     const titles = Array.from(document.querySelectorAll('.bcard .btitle')).map(
       (el) => el.textContent ?? '',
     );
@@ -331,7 +307,7 @@ describe('四维筛选集成（feat05 场景1）', () => {
   it('无筛选时不显示「清除全部筛选」，有筛选时出现', async () => {
     await seed({ url: 'https://a.example/1', title: '甲条', daysAgo: 0, topics: ['项目管理'] });
 
-    render(<RecentSection onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
     await screen.findByText('甲条');
     expect(screen.queryByRole('button', { name: '清除全部筛选' })).toBeNull();
 
@@ -346,7 +322,7 @@ describe('状态筛选集成（feat05 场景3）', () => {
     await seed({ url: 'https://i.example/2', title: '新条', daysAgo: 1, status: 'inbox' });
     await seed({ url: 'https://d.example/3', title: '完成条', daysAgo: 2, status: '已完成' });
 
-    render(<RecentSection onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
     await screen.findByText('在读条');
 
     fireEvent.click(screen.getByRole('button', { name: /^进行中/ }));
@@ -361,7 +337,7 @@ describe('状态筛选集成（feat05 场景3）', () => {
 
     // 再点一次 已完成 取消该条件，回到默认视图
     fireEvent.click(screen.getByRole('button', { name: /^已完成/ }));
-    expect(await screen.findByText('最近添加')).toBeTruthy();
+    expect(await screen.findByText('全部收藏')).toBeTruthy();
   });
 });
 
@@ -380,7 +356,7 @@ describe('主题「全部满足」切换集成（feat05 场景4）', () => {
       topics: ['项目管理', '会议纪要'],
     });
 
-    render(<RecentSection onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
     await screen.findByText('双主题条');
 
     fireEvent.click(screen.getByRole('button', { name: /^项目管理/ }));
@@ -423,7 +399,7 @@ describe('取消单个条件与清除全部（feat05 场景6）', () => {
       types: ['演示文稿'],
     });
 
-    render(<RecentSection onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
     await screen.findByText('甲条');
 
     fireEvent.click(screen.getByRole('button', { name: /^项目管理/ }));
@@ -438,10 +414,9 @@ describe('取消单个条件与清除全部（feat05 场景6）', () => {
     );
     expect(titles).toEqual(['甲条', '戊条']);
 
-    // 清除全部筛选 → 回到默认「最近添加」视图（最近 3 条 + hint）
+    // 清除全部筛选 → 回到默认「全部收藏」视图
     fireEvent.click(screen.getByRole('button', { name: '清除全部筛选' }));
-    expect(await screen.findByText('最近添加')).toBeTruthy();
-    expect(screen.getByText(/选择上方标签开始按维度筛选/)).toBeTruthy();
+    expect(await screen.findByText('全部收藏')).toBeTruthy();
     titles = Array.from(document.querySelectorAll('.bcard .btitle')).map(
       (el) => el.textContent ?? '',
     );
@@ -464,7 +439,7 @@ describe('取消单个条件与清除全部（feat05 场景6）', () => {
       types: ['数据表格'],
     });
 
-    render(<RecentSection onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
     await screen.findByText('甲条');
 
     fireEvent.click(screen.getByRole('button', { name: /^演示文稿/ }));
@@ -488,7 +463,7 @@ describe('无命中空态（feat05 场景7）', () => {
       types: ['演示文稿'],
     });
 
-    render(<RecentSection onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
     await screen.findByText('甲条');
 
     // 主题「项目管理」+ 形态「数据表格」：甲不满足 数据表格 → 0 命中
@@ -523,10 +498,10 @@ describe('搜索收藏：搜到结果（feat06 场景1）', () => {
     });
     await seed({ url: 'https://b.example/2', title: '乙条', daysAgo: 0 });
 
-    render(<RecentSection onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
     await screen.findByText('甲条');
 
-    // 搜索框位于「最近新增」视图筛选区上方
+    // 搜索框位于筛选区上方
     const searchbox = document.querySelector('.searchbox');
     const filters = document.querySelector('.filters');
     expect(searchbox).toBeTruthy();
@@ -549,7 +524,7 @@ describe('搜索收藏：搜到结果（feat06 场景1）', () => {
     await seed({ url: 'https://github.com/x/new', title: '新仓库条', daysAgo: 0 });
     await seed({ url: 'https://gitlab.example/x', title: '无关条', daysAgo: 2 });
 
-    render(<RecentSection onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
     await screen.findByText('新仓库条');
 
     fireEvent.change(screen.getByRole('textbox', { name: '搜索收藏' }), {
@@ -568,7 +543,7 @@ describe('搜索没有匹配（feat06 场景2）', () => {
   it('搜索「量子」显示「没有找到相关收藏」空状态，不显示列表', async () => {
     await seed({ url: 'https://a.example/1', title: '甲条', daysAgo: 0 });
 
-    render(<RecentSection onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
     await screen.findByText('甲条');
 
     fireEvent.change(screen.getByRole('textbox', { name: '搜索收藏' }), {
@@ -577,7 +552,6 @@ describe('搜索没有匹配（feat06 场景2）', () => {
     expect(await screen.findByText('没有找到相关收藏')).toBeTruthy();
     expect(document.querySelectorAll('.bcard')).toHaveLength(0); // 不显示列表
     expect(screen.queryByText('甲条')).toBeNull();
-    expect(screen.queryByText(/选择上方标签开始按维度筛选/)).toBeNull(); // 搜索态不显示默认 hint
   });
 });
 
@@ -602,7 +576,7 @@ describe('搜索与筛选叠加（feat06 场景3 UI 集成）', () => {
       types: ['演示文稿'],
     });
 
-    render(<RecentSection onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
     await screen.findByText('会议纪要演示文稿');
 
     fireEvent.click(screen.getByRole('button', { name: /^演示文稿/ }));
@@ -627,11 +601,11 @@ describe('搜索与筛选叠加（feat06 场景3 UI 集成）', () => {
     expect(screen.getByText('筛选结果 · 2 条命中')).toBeTruthy();
   });
 
-  it('「清除全部筛选」把搜索词一并清空，回到默认「最近添加」视图', async () => {
+  it('「清除全部筛选」把搜索词一并清空，回到默认「全部收藏」视图', async () => {
     await seed({ url: 'https://a.example/1', title: '甲条', daysAgo: 0, topics: ['项目管理'] });
     await seed({ url: 'https://b.example/2', title: '乙条', daysAgo: 1 });
 
-    render(<RecentSection onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
     await screen.findByText('甲条');
 
     fireEvent.click(screen.getByRole('button', { name: /^项目管理/ }));
@@ -641,8 +615,7 @@ describe('搜索与筛选叠加（feat06 场景3 UI 集成）', () => {
     expect(await screen.findByText('1 条结果')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: '清除全部筛选' }));
-    expect(await screen.findByText('最近添加')).toBeTruthy();
-    expect(screen.getByText(/选择上方标签开始按维度筛选/)).toBeTruthy();
+    expect(await screen.findByText('全部收藏')).toBeTruthy();
     const searchInput = screen.getByRole('textbox', { name: '搜索收藏' });
     if (!(searchInput instanceof HTMLInputElement)) throw new Error('搜索框应为 input 元素');
     expect(searchInput.value).toBe('');
@@ -660,23 +633,23 @@ describe('「全部收藏」视图（feat07）', () => {
     ]) {
       await seed(item);
     }
-    render(<RecentSection variant="library" onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
 
-    expect(await screen.findByText('全部收藏')).toBeTruthy();
-    expect(screen.queryByText('最近添加')).toBeNull();
-    expect(screen.queryByText(/选择上方标签开始按维度筛选/)).toBeNull();
+    // 先等首卡出现（页头标题在 loading 期间也会渲染，不能作为就绪信号）
+    expect(await screen.findByText('第一条')).toBeTruthy();
+    expect(screen.getByText('全部收藏')).toBeTruthy();
     const titles = Array.from(document.querySelectorAll('.bcard .btitle')).map(
       (el) => el.textContent ?? '',
     );
     expect(titles).toEqual(['第一条', '第二条', '第三条', '第四条', '第五条']); // 全部 5 条，新到旧
   });
 
-  it('筛选与搜索行为与「最近新增」一致（场景2）', async () => {
+  it('筛选与搜索叠加（场景2）', async () => {
     await seed({ url: 'https://a.example/1', title: '甲条', daysAgo: 0, topics: ['项目管理'] });
     await seed({ url: 'https://b.example/2', title: '乙条', daysAgo: 1, topics: ['会议纪要'] });
     await seed({ url: 'https://c.example/3', title: '丙条', daysAgo: 2, topics: ['项目管理'] });
 
-    render(<RecentSection variant="library" onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
     await screen.findByText('甲条');
 
     fireEvent.click(screen.getByRole('button', { name: /^项目管理/ }));
@@ -698,7 +671,7 @@ describe('「全部收藏」视图（feat07）', () => {
 
   it('空收藏库显示空态提示与去导入引导（场景3）', async () => {
     const onNavigateImport = vi.fn();
-    render(<RecentSection variant="library" onNavigateImport={onNavigateImport} />);
+    render(<LibrarySection onNavigateImport={onNavigateImport} />);
 
     expect(await screen.findByText(/收藏库还是空的/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: /导入已有书签/ }));
@@ -709,7 +682,7 @@ describe('「全部收藏」视图（feat07）', () => {
 describe('页头：大标题 + 副标题（task-home-layout）', () => {
   it('「全部收藏」页头含大标题与副标题「把收藏变成可再次遇见的线索。」', async () => {
     await seed({ url: 'https://a.example/1', title: '甲条', daysAgo: 0 });
-    render(<RecentSection variant="library" onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
 
     await screen.findByText('甲条');
     const head = document.querySelector('.page-head');
@@ -717,23 +690,13 @@ describe('页头：大标题 + 副标题（task-home-layout）', () => {
     expect(head?.querySelector('.page-title')?.textContent).toBe('全部收藏');
     expect(head?.querySelector('.page-tagline')?.textContent).toBe('把收藏变成可再次遇见的线索。');
   });
-
-  it('「最近新增」页头含大标题「最近添加」与一句副标题', async () => {
-    await seed({ url: 'https://a.example/1', title: '甲条', daysAgo: 0 });
-    render(<RecentSection onNavigateImport={vi.fn()} />);
-
-    await screen.findByText('甲条');
-    const head = document.querySelector('.page-head');
-    expect(head?.querySelector('.page-title')?.textContent).toBe('最近添加');
-    expect(head?.querySelector('.page-tagline')?.textContent ?? '').not.toBe('');
-  });
 });
 
 describe('云朵同步标记（sync-archive feat03）', () => {
   it('已同步：来源信息行末尾低对比度云朵，悬停显示「已同步 · <账号邮箱>」（场景1）', async () => {
     await login({ email: 'a@x.com', syncAgo: 1 }); // 上次同步于 1 天前
     await seed({ url: 'https://a.example/1', title: '旧收藏', daysAgo: 3 }); // 收藏早于上次同步
-    render(<RecentSection onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
 
     await screen.findByText('旧收藏');
     const meta = document.querySelector('.bcard .bmeta');
@@ -751,7 +714,7 @@ describe('云朵同步标记（sync-archive feat03）', () => {
   it('待同步：云朵以醒目待同步样式显示，与已同步样式明显区分（场景2）', async () => {
     await login({ syncAgo: 2 }); // 上次同步于 2 天前
     await seed({ url: 'https://a.example/1', title: '刚收藏', daysAgo: 0 }); // 收藏晚于上次同步
-    render(<RecentSection onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
 
     await screen.findByText('刚收藏');
     const cloud = document.querySelector('.bcard .bmeta .sync-cloud');
@@ -762,7 +725,7 @@ describe('云朵同步标记（sync-archive feat03）', () => {
 
   it('未登录：卡片上不出现任何同步标记（场景4）', async () => {
     await seed({ url: 'https://a.example/1', title: '甲条', daysAgo: 0 });
-    render(<RecentSection onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
 
     await screen.findByText('甲条');
     expect(document.querySelector('.sync-cloud')).toBeNull();
@@ -774,7 +737,7 @@ describe('收藏页头汇总行（sync-archive feat04）', () => {
     await login({ syncAgo: 5 });
     await seed({ url: 'https://a.example/1', title: '甲条', daysAgo: 7 });
     await seed({ url: 'https://b.example/2', title: '乙条', daysAgo: 8 });
-    render(<RecentSection variant="library" onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
 
     await screen.findByText('甲条');
     expect(screen.getByText('2 条收藏 · 已全部同步')).toBeTruthy();
@@ -786,7 +749,7 @@ describe('收藏页头汇总行（sync-archive feat04）', () => {
     await seed({ url: 'https://b.example/2', title: '乙条', daysAgo: 3 }); // 待同步
     await seed({ url: 'https://c.example/3', title: '丙条', daysAgo: 2 }); // 待同步
     await seed({ url: 'https://d.example/4', title: '丁条', daysAgo: 1 }); // 待同步
-    render(<RecentSection variant="library" onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
 
     await screen.findByText('甲条');
     expect(screen.getByText('4 条收藏 · 3 条待同步')).toBeTruthy();
@@ -795,7 +758,7 @@ describe('收藏页头汇总行（sync-archive feat04）', () => {
   it('未登录：只显示「N 条收藏」，不出现任何同步相关文字（场景3）', async () => {
     await seed({ url: 'https://a.example/1', title: '甲条', daysAgo: 0 });
     await seed({ url: 'https://b.example/2', title: '乙条', daysAgo: 1 });
-    render(<RecentSection variant="library" onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
 
     await screen.findByText('甲条');
     expect(screen.getByText('2 条收藏')).toBeTruthy();
@@ -805,7 +768,7 @@ describe('收藏页头汇总行（sync-archive feat04）', () => {
 
   it('收藏库为空：沿用现有空态，不显示汇总行（场景4）', async () => {
     await login({ syncAgo: 1 });
-    render(<RecentSection variant="library" onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
 
     expect(await screen.findByText(/收藏库还是空的/)).toBeTruthy();
     expect(document.querySelector('.page-summary')).toBeNull();
@@ -815,7 +778,7 @@ describe('收藏页头汇总行（sync-archive feat04）', () => {
     await login({ syncAgo: 5 });
     await seed({ url: 'https://a.example/1', title: '甲条', daysAgo: 7, topics: ['项目管理'] });
     await seed({ url: 'https://b.example/2', title: '乙条', daysAgo: 3 });
-    render(<RecentSection variant="library" onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
 
     await screen.findByText('甲条');
     fireEvent.click(screen.getByRole('button', { name: /^项目管理/ }));
@@ -828,7 +791,7 @@ describe('同步状态免刷新翻转（sync-archive feat03 场景3/场景5）',
   it('后台同步完成（另一上下文写当前库 lastSyncAt）：云朵与汇总行即时翻转，无需刷新（场景3）', async () => {
     await login({ syncAgo: 2 }); // 上次同步于 2 天前
     await seed({ url: 'https://a.example/1', title: '刚收藏', daysAgo: 0 });
-    render(<RecentSection onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
 
     // 初始：待同步样式 + 汇总行报待同步
     const cloud = await screen.findByTitle('待同步');
@@ -847,7 +810,7 @@ describe('同步状态免刷新翻转（sync-archive feat03 场景3/场景5）',
   it('同步失败（lastSyncAt 不推进）：云朵保持待同步样式，不误报已同步（场景5）', async () => {
     await login({ syncAgo: 2 });
     await seed({ url: 'https://a.example/1', title: '刚收藏', daysAgo: 0 });
-    render(<RecentSection onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
 
     await screen.findByTitle('待同步');
     // 模拟一次失败的同步尝试：服务器不可达，本地只有无关写入（lastSyncAt 不动）
@@ -861,7 +824,7 @@ describe('同步状态免刷新翻转（sync-archive feat03 场景3/场景5）',
 
   it('未登录：不建立 lastSyncAt 订阅，default 库写入不产生同步元素（feat01 场景1）', async () => {
     await seed({ url: 'https://a.example/1', title: '甲条', daysAgo: 0 });
-    render(<RecentSection onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
 
     await screen.findByText('甲条');
     await db.meta.put({ key: 'lastSyncAt', value: NOW.toISOString() });
@@ -878,7 +841,7 @@ describe('按「待同步」筛选（sync-archive feat06）', () => {
     await seed({ url: 'https://a.example/1', title: '旧甲', daysAgo: 7 }); // 已同步
     await seed({ url: 'https://b.example/2', title: '新乙', daysAgo: 3 }); // 待同步
     await seed({ url: 'https://c.example/3', title: '新丙', daysAgo: 1 }); // 待同步
-    render(<RecentSection variant="library" onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
 
     await screen.findByText('旧甲');
     fireEvent.click(screen.getByRole('button', { name: '待同步' }));
@@ -898,7 +861,7 @@ describe('按「待同步」筛选（sync-archive feat06）', () => {
   it('全部已同步时点击「待同步」：空态「没有待同步的收藏，一切都已在服务器上」（场景2）', async () => {
     await login({ syncAgo: 1 });
     await seed({ url: 'https://a.example/1', title: '旧甲', daysAgo: 3 }); // 早于上次同步
-    render(<RecentSection variant="library" onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
 
     await screen.findByText('旧甲');
     fireEvent.click(screen.getByRole('button', { name: '待同步' }));
@@ -910,9 +873,97 @@ describe('按「待同步」筛选（sync-archive feat06）', () => {
 
   it('未登录：筛选区不出现「待同步」入口（场景3）', async () => {
     await seed({ url: 'https://a.example/1', title: '甲条', daysAgo: 0 });
-    render(<RecentSection variant="library" onNavigateImport={vi.fn()} />);
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
 
     await screen.findByText('甲条');
     expect(screen.queryByRole('button', { name: '待同步' })).toBeNull();
+  });
+});
+
+describe('「全部收藏」收藏时间下拉筛选（feat08）', () => {
+  /** 播种四条：今天 / 5 天前 / 20 天前 / 100 天前（NOW=2026-09-11T12:00 见 beforeEach）。 */
+  async function seedFour(): Promise<void> {
+    await seed({ url: 'https://a.example/1', title: '今天条', daysAgo: 0 });
+    await seed({ url: 'https://b.example/2', title: '五天前条', daysAgo: 5 });
+    await seed({ url: 'https://c.example/3', title: '二十天前条', daysAgo: 20 });
+    await seed({ url: 'https://d.example/4', title: '百天前条', daysAgo: 100 });
+  }
+
+  function visibleTitles(): string[] {
+    return Array.from(document.querySelectorAll('.bcard .btitle')).map(
+      (el) => el.textContent ?? '',
+    );
+  }
+
+  /** 打开「收藏时间」下拉并点选指定选项（等下拉出现再点，页头标题在 loading 期间已渲染，不能作就绪信号）。 */
+  async function pickTimeRange(optionName: string): Promise<void> {
+    fireEvent.click(await screen.findByRole('button', { name: /收藏时间/ }));
+    fireEvent.click(screen.getByRole('option', { name: optionName }));
+  }
+
+  it('默认视图出现「收藏时间」下拉且默认「全部」，列表不过滤（功能边界）', async () => {
+    await seedFour();
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
+
+    const trigger = await screen.findByRole('button', { name: /收藏时间/ });
+    expect(trigger.textContent).toContain('全部');
+    expect(await screen.findByText('全部收藏')).toBeTruthy();
+    expect(visibleTitles()).toHaveLength(4); // 默认不过滤
+  });
+
+  it('切「最近 7 天」只显示今天与 5 天前两卡，标题「筛选结果 · 2 条命中」并出现清除入口（场景2）', async () => {
+    await seedFour();
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
+
+    await pickTimeRange('最近 7 天');
+
+    expect(await screen.findByText('筛选结果 · 2 条命中')).toBeTruthy();
+    expect(visibleTitles()).toEqual(['今天条', '五天前条']);
+    expect(screen.getByRole('button', { name: '清除全部筛选' })).toBeTruthy();
+  });
+
+  it('时间范围与主题筛选取「且」叠加（场景3）', async () => {
+    await seed({
+      url: 'https://a.example/1',
+      title: '新·项目管理',
+      daysAgo: 3,
+      topics: ['项目管理'],
+    });
+    await seed({
+      url: 'https://b.example/2',
+      title: '旧·项目管理',
+      daysAgo: 40,
+      topics: ['项目管理'],
+    });
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /^项目管理/ }));
+    await pickTimeRange('最近一个月');
+
+    expect(await screen.findByText('筛选结果 · 1 条命中')).toBeTruthy();
+    expect(visibleTitles()).toEqual(['新·项目管理']);
+  });
+
+  it('「清除全部筛选」后下拉回到「全部」、列表恢复全部、标题回「全部收藏」（场景4）', async () => {
+    await seedFour();
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
+
+    await pickTimeRange('最近 7 天');
+    await screen.findByText('筛选结果 · 2 条命中');
+    fireEvent.click(screen.getByRole('button', { name: '清除全部筛选' }));
+
+    expect(await screen.findByText('全部收藏')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /收藏时间/ }).textContent).toContain('全部');
+    expect(visibleTitles()).toHaveLength(4);
+  });
+
+  it('范围内无收藏时显示空态文案，下拉保持已选值不自动回「全部」（场景5）', async () => {
+    await seed({ url: 'https://a.example/1', title: '旧条', daysAgo: 10 });
+    render(<LibrarySection onNavigateImport={vi.fn()} />);
+
+    await pickTimeRange('今天');
+
+    expect(await screen.findByText('没有同时满足这些条件的收藏，试试减少一个维度。')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /收藏时间/ }).textContent).toContain('今天');
   });
 });

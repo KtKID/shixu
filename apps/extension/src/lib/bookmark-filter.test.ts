@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createBookmark, type Bookmark } from '@x-threadpick/shared';
 import {
   applyFilter,
@@ -447,5 +447,81 @@ describe('sync-archive feat06：「待同步」筛选（引擎层）', () => {
       },
     );
     expect(facets).toEqual([{ value: 'AI', count: 2, selected: false }]); // 只数 2 条待同步
+  });
+});
+
+describe('feat08：按收藏时间筛选（引擎层）', () => {
+  /** 锚定「现在」为本地时间 2026-09-14 12:00；只 fake Date，与视图测试口径一致。 */
+  const NOW = new Date(2026, 8, 14, 12, 0, 0);
+  const DAY_MS = 86400000;
+
+  /** 本地时间构造 createdAt（daysAgo 天前 + 当日时分偏移），转 ISO 入库。 */
+  function ago(daysAgo: number, hour = 12, minute = 0): string {
+    const base = new Date(NOW.getTime() - daysAgo * DAY_MS);
+    base.setHours(hour, minute, 0, 0);
+    return base.toISOString();
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(NOW);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('emptyFilter 的收藏时间为「全部」，任意久远的收藏恒命中（场景1）', () => {
+    expect(emptyFilter().timeRange).toBe('all');
+    const ancient = make('ancient', { createdAt: '2020-01-01T00:00:00.000Z' });
+    expect(matchesFilter(ancient, emptyFilter())).toBe(true);
+  });
+
+  it('「今天」按自然日：当天凌晨收藏命中，昨天深夜收藏不命中（场景2）', () => {
+    const dawnToday = make('dawn', { createdAt: ago(0, 0, 30) });
+    const lateYesterday = make('late', { createdAt: ago(1, 23, 30) });
+    const filter = selection({ timeRange: 'today' });
+    expect(matchesFilter(dawnToday, filter)).toBe(true);
+    expect(matchesFilter(lateYesterday, filter)).toBe(false);
+  });
+
+  it('「最近 7 天」：6 天前命中、8 天前不命中（场景2）', () => {
+    const filter = selection({ timeRange: 'd7' });
+    expect(matchesFilter(make('in', { createdAt: ago(6) }), filter)).toBe(true);
+    expect(matchesFilter(make('out', { createdAt: ago(8) }), filter)).toBe(false);
+  });
+
+  it('「最近一个月」按 30 天窗口：29 天前命中、31 天前不命中（边界）', () => {
+    const filter = selection({ timeRange: 'd30' });
+    expect(matchesFilter(make('in', { createdAt: ago(29) }), filter)).toBe(true);
+    expect(matchesFilter(make('out', { createdAt: ago(31) }), filter)).toBe(false);
+  });
+
+  it('「最近半年」按 180 天窗口：179 天前命中、181 天前不命中（边界）', () => {
+    const filter = selection({ timeRange: 'd180' });
+    expect(matchesFilter(make('in', { createdAt: ago(179) }), filter)).toBe(true);
+    expect(matchesFilter(make('out', { createdAt: ago(181) }), filter)).toBe(false);
+  });
+
+  it('时间范围与形态条件取「且」：满足形态但超出时间范围不命中（场景3）', () => {
+    const fresh = make('fresh', { types: ['论文'], createdAt: ago(3) });
+    const stale = make('stale', { types: ['论文'], createdAt: ago(40) });
+    const filter = selection({ types: ['论文'], timeRange: 'd30' });
+    expect(matchesFilter(fresh, filter)).toBe(true);
+    expect(matchesFilter(stale, filter)).toBe(false);
+  });
+
+  it('时间条件非「全部」计入 hasActiveFilter（场景2：标题切换与清除入口的前提）', () => {
+    expect(hasActiveFilter(emptyFilter())).toBe(false);
+    expect(hasActiveFilter(selection({ timeRange: 'd7' }))).toBe(true);
+  });
+
+  it('候选动态计数以时间范围为前提：超期条目不计入（场景3）', () => {
+    const fresh = make('fresh', { topics: ['AI'], createdAt: ago(2) });
+    const stale = make('stale', { topics: ['AI'], createdAt: ago(100) });
+    const facets = countFacetValues([fresh, stale], selection({ timeRange: 'd30' }), 'topic', [
+      'AI',
+    ]);
+    expect(facets).toEqual([{ value: 'AI', count: 1, selected: false }]);
   });
 });

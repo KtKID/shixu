@@ -336,7 +336,7 @@ body {
   margin-top: 12px;
 }
 
-/* ── 「最近新增」视图（RecentSection，视觉参考原型结果区） ── */
+/* ── 「全部收藏」视图（LibrarySection，视觉参考原型结果区） ── */
 .result-head {
   display: flex;
   align-items: baseline;
@@ -347,11 +347,6 @@ body {
   font-size: 18px;
   font-weight: 500;
   font-family: Georgia, 'Songti SC', serif;
-}
-.result-hint {
-  font-size: 12px;
-  color: var(--ink-faint);
-  margin: -8px 0 18px;
 }
 
 /* 清除全部筛选（存在任一筛选时出现在标题行右侧，feat05 场景6） */
@@ -516,6 +511,76 @@ body {
 .fmode button[aria-pressed='true'] {
   background: var(--ink-soft);
   color: #fbf3e7;
+}
+
+/* ── 收藏时间下拉（TimeRangeDropdown，feat08）：触发钮沿用 fchip 药丸风格，面板与卡片同材质 ── */
+.timerange {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: -10px 0 18px;
+}
+.tr-select {
+  position: relative;
+}
+.tr-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 13px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #faf6ec;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background 0.15s;
+}
+.tr-trigger:hover,
+.tr-trigger[aria-expanded='true'] {
+  border-color: #d8b6a3;
+  color: var(--ink);
+}
+.tr-caret {
+  font-size: 10px;
+  color: var(--ink-faint);
+}
+.tr-menu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 132px;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+.tr-option {
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    background 0.15s;
+}
+.tr-option:hover {
+  background: #faf6ec;
+  color: var(--ink);
+}
+.tr-option.on {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-weight: 600;
 }
 
 /* 卡片网格：按容器宽度自动排列（宽屏一排更多列，task-home-layout） */

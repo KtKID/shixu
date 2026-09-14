@@ -11,6 +11,9 @@ import { syncStateOf } from './sync-status';
 
 export type TopicMatchMode = 'any' | 'all';
 
+/** 收藏时间范围（homepage feat08）：全部 / 今天（自然日）/ 最近 7 天 / 30 天（一个月）/ 180 天（半年）。 */
+export type TimeRange = 'all' | 'today' | 'd7' | 'd30' | 'd180';
+
 /** 同步语境（feat06）：待同步 = updatedAt > 当前库 lastSyncAt（口径同 lib/sync-status）。 */
 export interface SyncFilterContext {
   lastSyncAt: string | null;
@@ -19,7 +22,8 @@ export interface SyncFilterContext {
 /**
  * 筛选条件：主题/形态/用途多选、状态单值（null = 未选）；topicMatch 仅作用于主题维度；
  * query 为收藏搜索关键词（feat06，空串 = 未搜索，与四维筛选取「且」叠加）；
- * pendingOnly = 只看待同步（sync-archive feat06，未登录界面保证不置真）。
+ * pendingOnly = 只看待同步（sync-archive feat06，未登录界面保证不置真）；
+ * timeRange 为收藏时间范围（feat08，'all' = 不过滤）。
  */
 export interface FilterSelection {
   topics: string[];
@@ -29,9 +33,10 @@ export interface FilterSelection {
   topicMatch: TopicMatchMode;
   query: string;
   pendingOnly: boolean;
+  timeRange: TimeRange;
 }
 
-/** 默认空筛选：满足任一、无任何已选条件、无搜索词、不按待同步过滤（feat05 场景4 默认）。 */
+/** 默认空筛选：满足任一、无任何已选条件、无搜索词、不按待同步过滤、收藏时间全部（feat05 场景4 默认）。 */
 export function emptyFilter(): FilterSelection {
   return {
     topics: [],
@@ -41,6 +46,7 @@ export function emptyFilter(): FilterSelection {
     topicMatch: 'any',
     query: '',
     pendingOnly: false,
+    timeRange: 'all',
   };
 }
 
@@ -54,9 +60,9 @@ export function hasDimensionFilter(filter: FilterSelection): boolean {
   );
 }
 
-/** 是否存在任一筛选条件（feat05 场景6：「清除全部筛选」的显示前提；pendingOnly 计入）。 */
+/** 是否存在任一筛选条件（feat05 场景6：「清除全部筛选」的显示前提；pendingOnly 与收藏时间计入）。 */
 export function hasActiveFilter(filter: FilterSelection): boolean {
-  return hasDimensionFilter(filter) || filter.pendingOnly;
+  return hasDimensionFilter(filter) || filter.pendingOnly || filter.timeRange !== 'all';
 }
 
 function toggleInList(list: readonly string[], value: string): string[] {
@@ -109,7 +115,33 @@ export function matchesQuery(bookmark: Bookmark, keyword: string): boolean {
   );
 }
 
-/** 判断单条书签是否命中筛选条件（维度间「且」、维度内「或」、状态单值、主题可全满足、关键词与「待同步」均「且」叠加）。 */
+const DAY_MS = 86400000;
+
+/** 各时间范围的天数窗口（feat08）；'today' 与 'all' 不走天数比较。 */
+const TIME_RANGE_DAYS: Partial<Record<TimeRange, number>> = { d7: 7, d30: 30, d180: 180 };
+
+/**
+ * 收藏时间命中（feat08，与四维/搜索/待同步取「且」叠加）：
+ * 'all' 恒命中；'today' 按本地自然日（与「现在」同年同月同日）；
+ * 其余按天数窗口（createdAt ≥ now − N 天）。createdAt 解析失败视为不命中。
+ */
+export function matchesTimeRange(bookmark: Bookmark, range: TimeRange, now = new Date()): boolean {
+  if (range === 'all') return true;
+  const created = Date.parse(bookmark.createdAt);
+  if (Number.isNaN(created)) return false;
+  if (range === 'today') {
+    const day = new Date(created);
+    return (
+      day.getFullYear() === now.getFullYear() &&
+      day.getMonth() === now.getMonth() &&
+      day.getDate() === now.getDate()
+    );
+  }
+  const days = TIME_RANGE_DAYS[range];
+  return days !== undefined && created >= now.getTime() - days * DAY_MS;
+}
+
+/** 判断单条书签是否命中筛选条件（维度间「且」、维度内「或」、状态单值、主题可全满足、关键词/「待同步」/收藏时间均「且」叠加）。 */
 export function matchesFilter(
   bookmark: Bookmark,
   filter: FilterSelection,
@@ -117,6 +149,9 @@ export function matchesFilter(
 ): boolean {
   const { topics, types, purposes, status, topicMatch } = filter;
   if (!matchesQuery(bookmark, filter.query)) {
+    return false;
+  }
+  if (!matchesTimeRange(bookmark, filter.timeRange)) {
     return false;
   }
   if (

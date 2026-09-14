@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react';
 /**
  * 收藏搜索框（homepage feat06）：受控输入，关键词在标题 / 来源域名 / 收藏理由三域匹配
  * （引擎见 lib/bookmark-filter 的 matchesQuery），与四维筛选取「且」叠加。
- * 命中条数由父层（RecentSection）按当前关键词 + 筛选条件计算后传入；未搜索时不展示。
+ * 命中条数由父层（LibrarySection）按当前关键词 + 筛选条件计算后传入；未搜索时不展示。
  */
 
 interface SearchBoxProps {

@@ -106,8 +106,8 @@ describe('搜索并导入（feat03 场景1）', () => {
     expect(rows).toHaveLength(2);
     expect(rows.every((row) => row.classification.status === 'inbox')).toBe(true);
 
-    // 导入的书签随后出现在「最近新增」（切回默认视图即可见）
-    fireEvent.click(screen.getByRole('button', { name: '最近新增' }));
+    // 导入的书签随后出现在「全部收藏」（切回默认视图即可见）
+    fireEvent.click(screen.getByRole('button', { name: '全部收藏' }));
     expect(await screen.findByText('World Models Survey')).toBeTruthy();
     expect(screen.getByText('Dreamer 论文')).toBeTruthy();
   });
@@ -235,8 +235,8 @@ describe('未登录时导入（feat03 场景4）', () => {
     expect(rows[0]?.urlNormalized).toBe('https://offline.example/page');
     expect(rows[0]?.classification.status).toBe('inbox');
 
-    // 「最近新增」立即可见，状态标签 Inbox
-    fireEvent.click(screen.getByRole('button', { name: '最近新增' }));
+    // 「全部收藏」立即可见，状态标签 Inbox
+    fireEvent.click(screen.getByRole('button', { name: '全部收藏' }));
     expect(await screen.findByText('离线收藏')).toBeTruthy();
     // 限定在收藏卡内断言（feat05 后筛选面板的状态候选 chips 也展示 Inbox，全页查询不再唯一）
     const card = screen.getByText('离线收藏').closest('.bcard');
@@ -245,7 +245,7 @@ describe('未登录时导入（feat03 场景4）', () => {
 });
 
 describe('完整链路 smoke（T5：场景1 + 场景2）', () => {
-  it('搜索 → 勾选 → 导入 → 最近新增出现新条目；同 URL 二次导入被跳过并提示', async () => {
+  it('搜索 → 勾选 → 导入 → 全部收藏出现新条目；同 URL 二次导入被跳过并提示', async () => {
     mockBookmarkTree(
       treeOf([
         folder('f1', '研究', [
@@ -262,8 +262,8 @@ describe('完整链路 smoke（T5：场景1 + 场景2）', () => {
     fireEvent.click(screen.getByRole('button', { name: /导入选中/ }));
     expect(await screen.findByText(/导入 1 条/)).toBeTruthy();
 
-    // 最近新增出现新条目
-    fireEvent.click(screen.getByRole('button', { name: '最近新增' }));
+    // 全部收藏出现新条目
+    fireEvent.click(screen.getByRole('button', { name: '全部收藏' }));
     expect(await screen.findByText('World Models Survey')).toBeTruthy();
 
     // 回到导入：同一 URL（换标题换文件夹换参数）二次导入 → 被跳过并提示

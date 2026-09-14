@@ -150,7 +150,7 @@ export default function App(props: CapturePanelProps) {
    * 顶栏入口（homepage feat01 场景1/2）：新标签页整页打开插件主页并落到指定条目；
    * 面板随 window.close() 销毁——未保存的理由与点选自然丢弃，不自动保存。
    */
-  const openHome = (section: 'recent' | 'network' | 'general'): void => {
+  const openHome = (section: 'library' | 'network' | 'general'): void => {
     browser.tabs
       .create({ url: browser.runtime.getURL(`/home.html#${section}`) })
       .catch(() => undefined)
@@ -297,7 +297,7 @@ export default function App(props: CapturePanelProps) {
             type="button"
             className="topbar-link"
             onClick={() => {
-              openHome('recent');
+              openHome('library');
             }}
           >
             已收藏

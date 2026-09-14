@@ -883,7 +883,7 @@ describe('顶栏主页入口（homepage feat01 场景1/2）', () => {
     return create;
   }
 
-  it('「已收藏」在新标签页整页打开主页「最近新增」，面板关闭且草稿不保存', async () => {
+  it('「已收藏」在新标签页整页打开主页「全部收藏」（默认条目），面板关闭且草稿不保存', async () => {
     await stashTarget(WEB_TARGET);
     mockNoActiveTab();
     const close = stubWindowClose();
@@ -897,7 +897,7 @@ describe('顶栏主页入口（homepage feat01 场景1/2）', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '已收藏' }));
 
-    expect(create).toHaveBeenCalledWith({ url: browser.runtime.getURL('/home.html#recent') });
+    expect(create).toHaveBeenCalledWith({ url: browser.runtime.getURL('/home.html#library') });
     await waitFor(() => expect(close).toHaveBeenCalled());
     // 未保存的理由与点选不保留、也不自动保存
     expect(await db.bookmarks.count()).toBe(0);

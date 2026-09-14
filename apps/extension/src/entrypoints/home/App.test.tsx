@@ -89,17 +89,16 @@ beforeEach(async () => {
 });
 
 describe('主页左侧导航（feat02 场景1 / 场景3）', () => {
-  it('导航条目从上到下依次为六项（feat07「全部收藏」/ feat-newtab「通用」），默认选中「最近新增」', () => {
+  it('导航条目从上到下依次为五项，「全部收藏」排第一并默认选中（feat04 已废弃，无「最近新增」）', () => {
     render(<App />);
 
     const items = screen.getByRole('navigation', { name: '主导航' }).querySelectorAll('.nav-item');
-    expect(items).toHaveLength(6);
-    expect(items[0]?.textContent).toContain('最近新增');
-    expect(items[1]?.textContent).toContain('全部收藏');
-    expect(items[2]?.textContent).toContain('网络连接');
-    expect(items[3]?.textContent).toContain('分类维度');
-    expect(items[4]?.textContent).toContain('导入已有书签');
-    expect(items[5]?.textContent).toContain('通用');
+    expect(items).toHaveLength(5);
+    expect(items[0]?.textContent).toContain('全部收藏');
+    expect(items[1]?.textContent).toContain('网络连接');
+    expect(items[2]?.textContent).toContain('分类维度');
+    expect(items[3]?.textContent).toContain('导入已有书签');
+    expect(items[4]?.textContent).toContain('通用');
     expect(items[0]?.classList.contains('active')).toBe(true);
     expect(items[0]?.getAttribute('aria-current')).toBe('page');
     expect(items[1]?.getAttribute('aria-current')).toBeNull();
@@ -111,7 +110,7 @@ describe('主页左侧导航（feat02 场景1 / 场景3）', () => {
     const nav = screen.getByRole('navigation', { name: '主导航' });
     expect(screen.queryByText('视图')).toBeNull();
     expect(screen.queryByText('回收站')).toBeNull();
-    expect(nav.querySelectorAll('.nav-item')).toHaveLength(6);
+    expect(nav.querySelectorAll('.nav-item')).toHaveLength(5);
   });
 
   it('点击条目切换选中分区', () => {
@@ -119,18 +118,17 @@ describe('主页左侧导航（feat02 场景1 / 场景3）', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '分类维度' }));
     const items = screen.getByRole('navigation', { name: '主导航' }).querySelectorAll('.nav-item');
-    expect(items[3]?.classList.contains('active')).toBe(true);
+    expect(items[2]?.classList.contains('active')).toBe(true);
     expect(items[0]?.classList.contains('active')).toBe(false);
   });
 });
 
 describe('「全部收藏」条目（feat07）', () => {
-  it('点击「全部收藏」切换选中，内容区标题为「全部收藏」', async () => {
+  it('默认即落在「全部收藏」，内容区标题为「全部收藏」', async () => {
     render(<App />);
 
-    fireEvent.click(screen.getByRole('button', { name: '全部收藏' }));
     const items = screen.getByRole('navigation', { name: '主导航' }).querySelectorAll('.nav-item');
-    expect(items[1]?.classList.contains('active')).toBe(true);
+    expect(items[0]?.classList.contains('active')).toBe(true);
     expect(await screen.findByRole('heading', { name: '全部收藏' })).toBeTruthy();
   });
 
@@ -147,19 +145,19 @@ describe('地址指定初始条目（feat01 场景2 的落点承载）', () => {
     render(<App initialSection="network" />);
 
     const items = screen.getByRole('navigation', { name: '主导航' }).querySelectorAll('.nav-item');
-    // feat07 后导航五项，「网络连接」为第三项（index 2）
-    expect(items[2]?.classList.contains('active')).toBe(true);
+    // 移除「最近新增」后导航五项，「网络连接」为第二项（index 1）
+    expect(items[1]?.classList.contains('active')).toBe(true);
     expect(items[0]?.classList.contains('active')).toBe(false);
   });
 
-  it('parseSectionHash：合法 hash 解析为对应条目，空/未知值回退「最近新增」', () => {
-    expect(parseSectionHash('#recent')).toBe('recent');
+  it('parseSectionHash：合法 hash 解析为对应条目，空/未知值与已移除的 #recent 都回退「全部收藏」', () => {
     expect(parseSectionHash('#library')).toBe('library');
     expect(parseSectionHash('#network')).toBe('network');
     expect(parseSectionHash('#dimensions')).toBe('dimensions');
     expect(parseSectionHash('#import')).toBe('import');
-    expect(parseSectionHash('')).toBe('recent');
-    expect(parseSectionHash('#bogus')).toBe('recent');
+    expect(parseSectionHash('')).toBe('library');
+    expect(parseSectionHash('#bogus')).toBe('library');
+    expect(parseSectionHash('#recent')).toBe('library');
   });
 });
 
@@ -178,24 +176,24 @@ describe('导航切换同步地址 hash（feat02 场景5）', () => {
   it('hash 变化（手动改地址/前进后退）时选中条目跟随（hashchange_switches_section）', async () => {
     render(<App />);
 
-    window.location.hash = '#library';
+    window.location.hash = '#network';
     fireEvent(window, new HashChangeEvent('hashchange'));
 
     const items = screen.getByRole('navigation', { name: '主导航' }).querySelectorAll('.nav-item');
     expect(items[1]?.classList.contains('active')).toBe(true);
-    expect(await screen.findByRole('heading', { name: '全部收藏' })).toBeTruthy();
+    expect(await screen.findByLabelText('服务器地址')).toBeTruthy();
   });
 
   it('切换条目后重开页面仍落在该条目（refresh_keeps_section）', async () => {
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: '全部收藏' }));
+    fireEvent.click(screen.getByRole('button', { name: '分类维度' }));
 
     cleanup();
     render(<App initialSection={parseSectionHash(window.location.hash)} />);
 
     const items = screen.getByRole('navigation', { name: '主导航' }).querySelectorAll('.nav-item');
-    expect(items[1]?.classList.contains('active')).toBe(true);
-    expect(await screen.findByRole('heading', { name: '全部收藏' })).toBeTruthy();
+    expect(items[2]?.classList.contains('active')).toBe(true);
+    expect(await screen.findByText('它讲什么？')).toBeTruthy();
   });
 });
 
@@ -238,7 +236,7 @@ describe('切换导航不丢输入（feat02 场景2）', () => {
     expect(screen.getByDisplayValue('8443')).toBeTruthy();
   });
 
-  it('「最近新增」里的本地库内容与其他分区互不影响地并存', async () => {
+  it('「全部收藏」里的本地库内容与其他分区互不影响地并存', async () => {
     await (
       await openLibrary('default')
     ).bookmarks.add(
@@ -252,8 +250,8 @@ describe('切换导航不丢输入（feat02 场景2）', () => {
     fireEvent.click(screen.getByRole('button', { name: '网络连接' }));
     await screen.findByLabelText('服务器地址');
 
-    fireEvent.click(screen.getByRole('button', { name: '最近新增' }));
-    expect(await screen.findByText('最近添加')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '全部收藏' }));
+    expect(await screen.findByRole('heading', { name: '全部收藏' })).toBeTruthy();
     expect(screen.getByText('本地一条')).toBeTruthy();
   });
 });
