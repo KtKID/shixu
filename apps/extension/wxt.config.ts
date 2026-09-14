@@ -13,8 +13,21 @@ export default defineConfig({
     // webNavigation：兜底手按 Cmd/Ctrl+T 的预渲染新标签页（onCreated 可能不触发或带无效 id），
     // 其安装警告与 tabs 同类（读取浏览记录），合计仍只多这一条
     permissions: ['bookmarks', 'storage', 'activeTab', 'tabs', 'webNavigation'],
-    // 设置页允许用户连接自建同步服务器（http/https），扩展上下文内 fetch 需要 host 权限
+    // host 权限仅日常构建需要：连接用户自建的同步服务器（http/https）+ 站点图标回填要 fetch 目标页面；
+    // 商店无账号版（--mode store）是纯本地数据，在下方 build:manifestGenerated hook 里整体移除
     host_permissions: ['http://*/*', 'https://*/*'],
+    icons: {
+      '16': '/icons/icon-16.png',
+      '32': '/icons/icon-32.png',
+      '48': '/icons/icon-48.png',
+      '128': '/icons/icon-128.png',
+    },
+    action: {
+      default_icon: {
+        '16': '/icons/icon-16.png',
+        '32': '/icons/icon-32.png',
+      },
+    },
     commands: {
       'capture-current-tab': {
         suggested_key: {
@@ -23,6 +36,24 @@ export default defineConfig({
         },
         description: '收藏当前页面到拾绪',
       },
+    },
+  },
+  hooks: {
+    'build:manifestGenerated': (wxt, manifest) => {
+      // Firefox 固定 gecko id：AMO 签名与后续更新都绑定该身份，商店首发前定下、之后不可再改
+      if (wxt.config.browser === 'firefox') {
+        manifest.browser_specific_settings = {
+          gecko: { id: 'x-threadpick@ktkid.dev' },
+        };
+      }
+      // 商店无账号版（--mode store）：去掉全部 host 权限，安装零警告、审查面最小
+      if (wxt.config.mode === 'store') {
+        if ('host_permissions' in manifest) delete manifest.host_permissions;
+        // MV2（Firefox）会把 host 模式并进 permissions 数组，一并滤掉
+        manifest.permissions = manifest.permissions?.filter(
+          (p) => !(p.startsWith('http://') || p.startsWith('https://')),
+        );
+      }
     },
   },
 });

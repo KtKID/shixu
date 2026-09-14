@@ -3,6 +3,7 @@ import type { Settings } from '@x-threadpick/shared';
 import { accountKey, loadSettings } from '../../db/settings';
 import { DEFAULT_LIBRARY_KEY } from '../../db/library';
 import { buildBaseUrl, splitBaseUrl } from '../../components/settings/api';
+import { ACCOUNT_FEATURES } from '../../lib/variant';
 import AccountCard from '../../components/settings/AccountCard';
 import DimensionsCard from '../../components/settings/DimensionsCard';
 import NewTabCard from '../../components/settings/NewTabCard';
@@ -13,13 +14,14 @@ import ImportSection from './sections/ImportSection';
 
 /**
  * 插件主页外壳：左侧导航（条目即功能分区）+ 右侧内容区。
- * 导航固定五项、无预留项（feat02 场景1/3，feat07 增补「全部收藏」）；内容区水平居中且有最大宽度（feat02 场景4，见 index.css）。
+ * 导航固定项、无预留项（feat02 场景1/3，feat07 增补「全部收藏」）；内容区水平居中且有最大宽度（feat02 场景4，见 index.css）。
  * 地址 hash 指定初始条目（#network 等），供 popup「设置」按钮直达（feat01 场景2）。
  * 切换条目时 hash 跟随回写并产生浏览历史，hashchange（手动改地址/前进后退）反向同步选中条目（feat02 场景5）。
  * 「网络连接」「分类维度」内的行为沿用《设置页面》spec，卡片自原 settings entrypoint 迁入公共目录。
  * 多库架构（sync-archive feat01 / task-account-libraries T8）：数据分区按当前库键 remount——
  * 登录、登出、切换账号后界面立即换库（settings 派生 libraryKey，各库互不混入）；
  * 设置未载入前不渲染数据分区，避免登录用户的界面上闪过 default 库内容。
+ * 商店无账号版（lib/variant）：「网络连接」整个分区不存在，#network hash 回退「最近新增」。
  */
 
 export type SectionKey = 'recent' | 'library' | 'network' | 'dimensions' | 'import' | 'general';
@@ -27,7 +29,8 @@ export type SectionKey = 'recent' | 'library' | 'network' | 'dimensions' | 'impo
 const SECTIONS: readonly { key: SectionKey; label: string; icon: string }[] = [
   { key: 'recent', label: '最近新增', icon: '⌂' },
   { key: 'library', label: '全部收藏', icon: '▤' },
-  { key: 'network', label: '网络连接', icon: '⟡' },
+  // 「网络连接」承载账号/同步/快照，纯本地商店版不渲染该条目
+  ...(ACCOUNT_FEATURES ? [{ key: 'network' as const, label: '网络连接', icon: '⟡' }] : []),
   { key: 'dimensions', label: '分类维度', icon: '❖' },
   { key: 'import', label: '导入已有书签', icon: '⇩' },
   { key: 'general', label: '通用', icon: '⚙' },
@@ -135,7 +138,7 @@ export default function App({ initialSection = 'recent' }: { initialSection?: Se
               />
             </section>
           )}
-          {section === 'network' && (
+          {ACCOUNT_FEATURES && section === 'network' && (
             <section className="section" aria-label="网络连接">
               {settings === null ? (
                 <p className="loading">正在载入设置…</p>

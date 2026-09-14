@@ -1,5 +1,6 @@
 import { BookmarkSchema } from '@x-threadpick/shared';
 import { fetchIconData, resolvePageIcon } from '../lib/page-icon';
+import { ACCOUNT_FEATURES } from '../lib/variant';
 import { getActiveBookmarks } from './bookmarks';
 import { currentLibrary } from './library';
 import { notifyLocalChange } from './autosync';
@@ -29,6 +30,8 @@ export async function ensureBookmarkIcons(
   resolve: (pageUrl: string) => Promise<string | null> = resolvePageIcon,
   fetchIcon: (iconUrl: string) => Promise<string | null> = fetchIconData,
 ): Promise<number> {
+  // 纯本地商店版：无 host 权限，跨站抓取必然失败，直接跳过（卡片走首字母兜底）
+  if (!ACCOUNT_FEATURES) return 0;
   const db = await currentLibrary();
   const pending = (await getActiveBookmarks(db)).filter((b) => !attempted.has(b.id));
   let updated = 0;

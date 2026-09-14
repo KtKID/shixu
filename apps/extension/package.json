@@ -1,15 +1,21 @@
 {
   "name": "@x-threadpick/extension",
-  "version": "0.0.5",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "postinstall": "wxt prepare",
     "dev": "wxt",
+    "icons": "node scripts/make-icons.mjs",
     "build": "wxt build -b chrome && wxt build -b firefox",
     "build:chrome": "wxt build -b chrome",
     "build:firefox": "wxt build -b firefox",
+    "build:store": "wxt build -b chrome --mode store && wxt build -b firefox --mode store",
+    "build:store:chrome": "wxt build -b chrome --mode store",
+    "build:store:firefox": "wxt build -b firefox --mode store",
     "pack:firefox": "wxt zip -b firefox && for f in dist/*-firefox.zip; do cp \"$f\" dist/x-threadpick.xpi; done",
+    "pack:store:chrome": "wxt zip -b chrome --mode store",
+    "pack:store:firefox": "wxt zip -b firefox --mode store",
     "typecheck": "wxt prepare && tsc --noEmit",
     "test": "vitest run",
     "check": "pnpm typecheck && pnpm test"

@@ -1,4 +1,5 @@
 import { AutoSyncMessageSchema } from '@x-threadpick/shared';
+import { ACCOUNT_FEATURES } from '../lib/variant';
 import { accountKey, loadSettings } from './settings';
 
 /**
@@ -12,6 +13,8 @@ import { accountKey, loadSettings } from './settings';
 export const AUTO_SYNC_DEBOUNCE_MS = 1500;
 
 export function notifyLocalChange(): void {
+  // 纯本地商店版：无同步可触发，不发消息（background 也未注册监听）
+  if (!ACCOUNT_FEATURES) return;
   browser.runtime.sendMessage(AutoSyncMessageSchema.parse({ type: 'local-change' })).catch(() => {
     // background 未就绪/无接收方时静默忽略：通知失败不影响写操作本身
   });

@@ -16,7 +16,10 @@
     "dev:server": "pnpm --filter @x-threadpick/server dev",
     "build:ext": "pnpm --filter @x-threadpick/extension build",
     "build:ext:firefox": "pnpm --filter @x-threadpick/extension build:firefox",
-    "pack:ext:firefox": "pnpm --filter @x-threadpick/extension pack:firefox"
+    "build:ext:store": "pnpm --filter @x-threadpick/extension build:store",
+    "pack:ext:firefox": "pnpm --filter @x-threadpick/extension pack:firefox",
+    "pack:ext:store:chrome": "pnpm --filter @x-threadpick/extension pack:store:chrome",
+    "pack:ext:store:firefox": "pnpm --filter @x-threadpick/extension pack:store:firefox"
   },
   "devDependencies": {
     "@eslint/js": "^9.20.0",

@@ -9,4 +9,5 @@ data/
 *.db-shm
 .env
 .DS_Store
+.zcode/
 output/

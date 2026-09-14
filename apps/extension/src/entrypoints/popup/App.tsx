@@ -10,6 +10,7 @@ import { ensureBookmarkIcons } from '../../db/icons';
 import { addTaxonomyValue, getTaxonomy, removeTaxonomyValue } from '../../db/taxonomy';
 import { subscribeLibrarySwitch } from '../../db/library';
 import { isCapturableUrl, resolveCaptureTarget } from '../../lib/capture-invoke';
+import { ACCOUNT_FEATURES } from '../../lib/variant';
 
 /**
  * 收藏面板：顶栏 / 只读页面信息 / 理由输入（feat03）/ 四维点选（feat04）/ 保存（feat05）/ 重复收藏预填（feat06）/ 顶栏库计数。
@@ -149,7 +150,7 @@ export default function App(props: CapturePanelProps) {
    * 顶栏入口（homepage feat01 场景1/2）：新标签页整页打开插件主页并落到指定条目；
    * 面板随 window.close() 销毁——未保存的理由与点选自然丢弃，不自动保存。
    */
-  const openHome = (section: 'recent' | 'network'): void => {
+  const openHome = (section: 'recent' | 'network' | 'general'): void => {
     browser.tabs
       .create({ url: browser.runtime.getURL(`/home.html#${section}`) })
       .catch(() => undefined)
@@ -305,7 +306,8 @@ export default function App(props: CapturePanelProps) {
             type="button"
             className="topbar-link"
             onClick={() => {
-              openHome('network');
+              // 账号版直达「网络连接」（主要设置都在这）；纯本地商店版无该分区，落到「通用」
+              openHome(ACCOUNT_FEATURES ? 'network' : 'general');
             }}
           >
             设置
