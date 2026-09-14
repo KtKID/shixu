@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import {
   createBookmark,
@@ -357,5 +357,46 @@ describe('从快照恢复（feat09）', () => {
 
     expect(screen.queryByRole('dialog', { name: '恢复快照' })).toBeNull();
     expect(restoreFromSnapshotMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('快照列表拉取失败（feat08 场景6）', () => {
+  it('服务器不可达 → 显式提示拉取失败，不伪装成「还没有快照」', async () => {
+    listSnapshotsMock.mockResolvedValue({ status: 'unreachable' });
+    const settings = await loggedInSettings();
+    render(<SnapshotCard settings={settings} />);
+
+    expect(await screen.findByText('快照列表拉取失败，请检查服务器连接。')).toBeTruthy();
+    expect(screen.queryByText('还没有快照。')).toBeNull();
+    expect(screen.getByText('列表拉取失败')).toBeTruthy(); // 头部份数也不谎报
+  });
+
+  it('请求抛错（网络异常）同样显式提示', async () => {
+    listSnapshotsMock.mockRejectedValue(new TypeError('fetch failed'));
+    const settings = await loggedInSettings();
+    render(<SnapshotCard settings={settings} />);
+
+    expect(await screen.findByText('快照列表拉取失败，请检查服务器连接。')).toBeTruthy();
+    expect(screen.queryByText('还没有快照。')).toBeNull();
+  });
+
+  it('失败后服务器恢复：下一分钟自动重试并把列表带回来', async () => {
+    vi.useFakeTimers();
+    try {
+      listSnapshotsMock.mockResolvedValue({ status: 'unreachable' });
+      const settings = await loggedInSettings();
+      render(<SnapshotCard settings={settings} />);
+      await act(async () => {}); // 冲刷首次拉取
+      expect(screen.getByText('快照列表拉取失败，请检查服务器连接。')).toBeTruthy();
+
+      listSnapshotsMock.mockResolvedValue({ status: 'ok', data: { snapshots: [SNAP_A] } });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(60_000);
+      });
+      expect(screen.getByText('152 条')).toBeTruthy();
+      expect(screen.queryByText('快照列表拉取失败，请检查服务器连接。')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

@@ -25,10 +25,13 @@ import {
   readCurrentLibraryServerBookmarksTotal,
   type SyncChangeSummary,
 } from '../../db/sync';
-import { login, register, testConnection } from './api';
+import { login, register, SERVER_PROBE_INTERVAL_MS, testConnection } from './api';
 import { formatDateTime } from './format';
 
 type Phase = 'idle' | 'checking' | 'submitting';
+
+/** 服务器实测状态（feat12）：unknown = 未登录不探测；checking/online/offline 为已登录下的真实探测结果 */
+type ServerStatus = 'unknown' | 'checking' | 'online' | 'offline';
 
 interface Props {
   settings: Settings;
@@ -38,6 +41,20 @@ interface Props {
 
 const SERVER_UNREACHABLE_MESSAGE = '连接失败，请先检查服务器地址';
 const PASSWORD_RULE_MESSAGE = '密码需包含英文和数字，且大于 5 位';
+
+/**
+ * 账号卡头部状态（feat12）：登录态与服务器可达性是两件事，分两段独立显示——
+ * 第一段是本地会话（未登录/已登录，登录成功后会话存本地 30 天，服务器宕机不掉登录）；
+ * 第二段仅已登录时出现，是服务器实测结果（检测中/已连接/不可达），不凭缓存登录态宣称正常。
+ */
+const SERVER_STATUS_VIEW: Record<
+  Exclude<ServerStatus, 'unknown'>,
+  { dot: string; text: string }
+> = {
+  checking: { dot: 'dot busy', text: '服务器检测中…' },
+  online: { dot: 'dot ok', text: '服务器已连接' },
+  offline: { dot: 'dot err', text: '服务器不在线无法同步' },
+};
 
 /** 场景7：切换到本机没有库的账号，必须联网拉取云端收藏。 */
 function needNetworkMessage(email: string): string {
@@ -66,6 +83,8 @@ export default function AccountCard({ settings, currentBaseUrl, onSettingsChange
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
   // 服务器概览（sync-archive feat05）：最近一次成功 pull 的服务器收藏总数，随库读取
   const [serverTotal, setServerTotal] = useState<number | null>(null);
+  // 当前服务器实测状态（feat12）：登录态变化即重新探测，未登录不探测
+  const [serverStatus, setServerStatus] = useState<ServerStatus>('unknown');
 
   const session = settings.session;
   const sessionExpired = session !== null && session.expiresAt <= new Date().toISOString();
@@ -98,6 +117,32 @@ export default function AccountCard({ settings, currentBaseUrl, onSettingsChange
       active = false;
     };
   }, [sessionKey]);
+
+  // 实测服务器可达性（feat12 场景2）：已登录则探测 session 对应的服务器；未登录复位为 unknown（默认无登录状态）。
+  // 页面停留期间每分钟安静复测一次（场景4），服务器中途宕机/恢复都会反映到状态上。
+  useEffect(() => {
+    if (!loggedIn || session === null) {
+      setServerStatus('unknown');
+      return;
+    }
+    let active = true;
+    const probe = (): void => {
+      testConnection(session.serverUrl)
+        .then(() => {
+          if (active) setServerStatus('online');
+        })
+        .catch(() => {
+          if (active) setServerStatus('offline');
+        });
+    };
+    setServerStatus('checking');
+    probe();
+    const timer = setInterval(probe, SERVER_PROBE_INTERVAL_MS);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [loggedIn, session]);
 
   /**
    * 登录/注册成功后的共同收尾（T7）：
@@ -386,8 +431,14 @@ export default function AccountCard({ settings, currentBaseUrl, onSettingsChange
           账号<span className="en">Account</span>
         </div>
         <div className="status">
-          <span className={`dot${loggedIn ? ' ok' : ''}`} />
-          {loggedIn ? '已登录 · 同步开启' : '未登录'}
+          <span className={loggedIn ? 'dot ok' : 'dot'} />
+          <span>{loggedIn ? '已登录' : '未登录'}</span>
+          {loggedIn && serverStatus !== 'unknown' && (
+            <>
+              <span className={SERVER_STATUS_VIEW[serverStatus].dot} />
+              <span>{SERVER_STATUS_VIEW[serverStatus].text}</span>
+            </>
+          )}
         </div>
       </div>
 

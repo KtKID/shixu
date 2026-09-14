@@ -68,13 +68,15 @@ async function loginThroughUi(): Promise<void> {
   fireEvent.change(screen.getByLabelText('邮箱'), { target: { value: EMAIL_A } });
   fireEvent.change(screen.getByLabelText('密码'), { target: { value: PASSWORD } });
   fireEvent.click(screen.getByRole('button', { name: '登录' }));
-  await screen.findByText('已登录 · 同步开启');
+  await screen.findByText('服务器已连接');
 }
 
 beforeEach(async () => {
   cleanup();
   fakeBrowser.reset();
   testConnectionMock.mockReset();
+  // 默认服务器可达：填了地址会自动探测一次（feat12），需要确定性的 resolved 值
+  testConnectionMock.mockResolvedValue({ latencyMs: 10, version: 'v0.1.0' });
   loginMock.mockReset();
   syncSessionMock.mockReset();
   syncSessionMock.mockResolvedValue({

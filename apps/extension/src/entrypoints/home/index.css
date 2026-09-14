@@ -620,7 +620,7 @@ body {
    待同步醒目（强调色 + 加重），两态明显区分；登录前不渲染（feat03 场景4）。 */
 .sync-cloud {
   margin-left: 5px;
-  font-size: 11px;
+  font-size: 24px;
   cursor: default;
 }
 .sync-cloud.synced {

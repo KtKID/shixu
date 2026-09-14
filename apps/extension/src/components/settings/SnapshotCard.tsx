@@ -9,7 +9,7 @@ import { parseStoredBookmark } from '../../db/bookmarks';
 import { currentLibrary } from '../../db/library';
 import { restoreFromSnapshot } from '../../db/restore';
 import { getTaxonomy } from '../../db/taxonomy';
-import { createSnapshot, deleteSnapshot, listSnapshots } from './api';
+import { createSnapshot, deleteSnapshot, listSnapshots, SERVER_PROBE_INTERVAL_MS } from './api';
 import { formatDateTime } from './format';
 
 /**
@@ -29,6 +29,8 @@ export default function SnapshotCard({ settings }: Props) {
   const loggedIn = session !== null && !sessionExpired;
 
   const [snapshots, setSnapshots] = useState<SnapshotMeta[]>([]);
+  // 列表拉取失败（服务器不可达/鉴权失败等）必须显式提示，不能伪装成「还没有快照」（feat08 场景6）
+  const [listError, setListError] = useState(false);
   const [archiving, setArchiving] = useState(false);
   const [archiveMessage, setArchiveMessage] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<SnapshotMeta | null>(null);
@@ -37,22 +39,47 @@ export default function SnapshotCard({ settings }: Props) {
   const [restoring, setRestoring] = useState(false);
   const [restoreMessage, setRestoreMessage] = useState<string | null>(null);
 
-  // 当前账号的快照列表：登录态变化（登录/登出/换账号）即重拉；失败静默保持空列表（低干扰）
+  // 当前账号的快照列表：登录态变化（登录/登出/换账号）即重拉；失败显式报错（feat08 场景6）
   useEffect(() => {
     if (session === null) {
       setSnapshots([]);
+      setListError(false);
       return;
     }
     let active = true;
+    setListError(false);
     listSnapshots(session.serverUrl, session.token)
       .then((outcome) => {
-        if (active && outcome.status === 'ok') setSnapshots(outcome.data.snapshots);
+        if (!active) return;
+        if (outcome.status === 'ok') {
+          setSnapshots(outcome.data.snapshots);
+        } else {
+          setListError(true);
+        }
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (active) setListError(true);
+      });
     return () => {
       active = false;
     };
   }, [session]);
+
+  // 拉取失败期间每分钟自动重试（feat08 场景6）：服务器恢复后列表自行回来，无需重开页面
+  useEffect(() => {
+    if (!listError || session === null) return;
+    const timer = setInterval(() => {
+      listSnapshots(session.serverUrl, session.token)
+        .then((outcome) => {
+          if (outcome.status === 'ok') {
+            setSnapshots(outcome.data.snapshots);
+            setListError(false);
+          }
+        })
+        .catch(() => undefined); // 仍失败则保持错误提示，下一分钟再试
+    }, SERVER_PROBE_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [listError, session]);
 
   const runArchive = (): void => {
     if (archiving || session === null) return;
@@ -129,7 +156,9 @@ export default function SnapshotCard({ settings }: Props) {
         <div className="card-title serif">
           快照存档<span className="en">Snapshots</span>
         </div>
-        {loggedIn && <div className="status">{`${snapshots.length} 份存档`}</div>}
+        {loggedIn && (
+          <div className="status">{listError ? '列表拉取失败' : `${snapshots.length} 份存档`}</div>
+        )}
       </div>
       <p className="card-desc">
         把整库收藏与分类取值存成带时间的快照，归到当前账号名下；需要时可整库恢复。
@@ -150,7 +179,9 @@ export default function SnapshotCard({ settings }: Props) {
 
       {loggedIn && (
         <div className="snap-list">
-          {snapshots.length === 0 ? (
+          {listError ? (
+            <p className="card-desc err-text">快照列表拉取失败，请检查服务器连接。</p>
+          ) : snapshots.length === 0 ? (
             <p className="card-desc">还没有快照。</p>
           ) : (
             snapshots.map((snap) => (

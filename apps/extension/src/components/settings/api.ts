@@ -30,6 +30,9 @@ import {
 
 const REQUEST_TIMEOUT_MS = 8000;
 
+/** 服务器状态周期复测间隔（feat12 场景4）：页面停留期间每分钟安静复测一次 */
+export const SERVER_PROBE_INTERVAL_MS = 60_000;
+
 function isBracketedIpv6(host: string): boolean {
   return /^\[[0-9a-f:.]+\]$/i.test(host);
 }

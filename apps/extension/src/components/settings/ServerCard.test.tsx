@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { DEFAULT_SETTINGS, type Session, type Settings } from '@x-threadpick/shared';
 import { loadSettings, recordServerLogin } from '../../db/settings';
@@ -56,6 +56,8 @@ beforeEach(() => {
   cleanup();
   fakeBrowser.reset();
   testConnectionMock.mockReset();
+  // 默认服务器可达：带地址渲染会自动探测一次（feat12），需要确定性的 resolved 值
+  testConnectionMock.mockResolvedValue({ latencyMs: 10, version: 'v0.1.0' });
 });
 
 describe('测试连接（feat01）', () => {
@@ -195,5 +197,47 @@ describe('历史服务器（feat02）', () => {
       expect(stored.history.map((s) => s.baseUrl)).toEqual([S2]);
       expect(stored.activeServerUrl).toBe(S2);
     });
+  });
+});
+
+describe('打开页面自动探测（feat12）', () => {
+  it('场景1：已有服务器地址时，进入页面即自动测试连接并显示实测结果', async () => {
+    const settings = await recordServerLogin(S1, makeSession(S1));
+    render(<Harness initial={settings} initialHost="s1.example" initialPort="8443" />);
+    expect(await screen.findByText('连接成功')).toBeTruthy();
+    expect(testConnectionMock).toHaveBeenCalledWith(S1);
+  });
+
+  it('场景2：服务器不可达时自动探测显示连接失败，不沿用旧状态', async () => {
+    testConnectionMock.mockRejectedValue(new TypeError('fetch failed'));
+    const settings = await recordServerLogin(S1, makeSession(S1));
+    render(<Harness initial={settings} initialHost="s1.example" initialPort="8443" />);
+    expect(await screen.findByText('连接失败')).toBeTruthy();
+    expect(screen.getByText('无法访问服务器或连接超时')).toBeTruthy();
+  });
+
+  it('场景3：未配置服务器地址时不自动探测，保持初始提示', () => {
+    render(<Harness initial={DEFAULT_SETTINGS} />);
+    expect(screen.getByText('尚未测试连接')).toBeTruthy();
+    expect(testConnectionMock).not.toHaveBeenCalled();
+  });
+
+  it('场景4：页面停留期间每分钟安静复测，服务器中途宕机状态翻转', async () => {
+    vi.useFakeTimers();
+    try {
+      const settings = await recordServerLogin(S1, makeSession(S1));
+      render(<Harness initial={settings} initialHost="s1.example" initialPort="8443" />);
+      await act(async () => {}); // 冲刷进入页面时的首次探测
+      expect(screen.getByText('连接成功')).toBeTruthy();
+
+      testConnectionMock.mockRejectedValue(new TypeError('fetch failed')); // 服务器宕机
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(60_000);
+      });
+      expect(screen.getByText('连接失败')).toBeTruthy();
+      expect(screen.queryByText(/正在连接/)).toBeNull(); // 安静复测，不闪「正在连接…」
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

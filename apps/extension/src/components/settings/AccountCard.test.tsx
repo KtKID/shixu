@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within, act } from '@testing-library/react';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import {
   DEFAULT_SETTINGS,
@@ -84,6 +84,8 @@ beforeEach(async () => {
   cleanup();
   fakeBrowser.reset();
   testConnectionMock.mockReset();
+  // 默认服务器可达：已登录的用例会触发账号卡的健康探测（feat12），需要确定性的 resolved 值
+  testConnectionMock.mockResolvedValue({ latencyMs: 10, version: 'v0.1.0' });
   registerMock.mockReset();
   syncNowMock.mockReset();
   loginMock.mockReset();
@@ -103,7 +105,7 @@ describe('登录账号（feat03）', () => {
     render(<Harness initial={DEFAULT_SETTINGS} currentBaseUrl={S1} />);
     fillLogin(EMAIL, PASSWORD);
     fireEvent.click(screen.getByRole('button', { name: '登录' }));
-    expect(await screen.findByText('已登录 · 同步开启')).toBeTruthy();
+    expect(await screen.findByText('服务器已连接')).toBeTruthy();
     expect(screen.getByText(EMAIL)).toBeTruthy();
     expect(screen.getByText('上次同步：尚未同步')).toBeTruthy();
     expect(screen.getByText('A')).toBeTruthy(); // 头像字母
@@ -152,7 +154,7 @@ describe('登录账号（feat03）', () => {
       expiresAt: '2030-01-01T00:00:00.000Z',
     });
     render(<Harness initial={settings} currentBaseUrl={S1} />);
-    expect(screen.getByText('已登录 · 同步开启')).toBeTruthy();
+    expect(await screen.findByText('服务器已连接')).toBeTruthy();
     expect(screen.queryByLabelText('邮箱')).toBeNull(); // 不要求重新输入密码
     expect(screen.getByText('上次同步：尚未同步')).toBeTruthy();
   });
@@ -204,7 +206,7 @@ describe('创建账号（feat09）', () => {
     const dialog = openRegisterDialog();
     fillRegister(dialog, EMAIL, 'abc123');
     fireEvent.click(within(dialog).getByRole('button', { name: '创建' }));
-    expect(await screen.findByText('已登录 · 同步开启')).toBeTruthy();
+    expect(await screen.findByText('服务器已连接')).toBeTruthy();
     expect(screen.queryByRole('dialog')).toBeNull(); // 弹窗关闭
     expect(screen.getByText(EMAIL)).toBeTruthy();
     const stored = await loadSettings();
@@ -389,7 +391,7 @@ describe('账号卡服务器概览（sync-archive feat05）', () => {
       }
     }
     render(<Harness initial={await loadSettings()} currentBaseUrl={S1} />);
-    await screen.findByText('已登录 · 同步开启');
+    await screen.findByText('服务器已连接');
     // 等随库读取 effect 完成后再返回，后续断言无竞态
     await vi.waitFor(() => {
       const el = screen.getByText(/上次同步：/);
@@ -444,7 +446,7 @@ describe('多库账号流（sync-archive feat01）', () => {
     await recordServerLogin(session.serverUrl, session);
     const settings = await loadSettings();
     render(<Harness initial={settings} currentBaseUrl={S1} />);
-    await screen.findByText('已登录 · 同步开启');
+    await screen.findByText('服务器已连接');
   }
 
   function mockLoginOk(token: string): void {
@@ -483,7 +485,7 @@ describe('多库账号流（sync-archive feat01）', () => {
     fillLogin(EMAIL, PASSWORD);
     fireEvent.click(screen.getByRole('button', { name: '登录' }));
 
-    await screen.findByText('已登录 · 同步开启');
+    await screen.findByText('服务器已连接');
     expect((await currentLibrary()).name).toBe(libraryDbName(`${S1}#${EMAIL}`));
     expect(await (await openLibrary(`${S1}#${EMAIL}`)).bookmarks.count()).toBe(2);
     expect(
@@ -508,12 +510,13 @@ describe('多库账号流（sync-archive feat01）', () => {
     });
     submitSwitchTo(EMAIL_B);
 
-    // 未确认前不发起任何请求
+    // 未确认前不发起任何登录/切换请求（仅进入页面时的一次健康探测，feat12）
     const dialog = await screen.findByRole('dialog', { name: '切换账号' });
     expect(dialog.textContent).toContain(EMAIL);
     expect(dialog.textContent).toContain(EMAIL_B);
     expect(dialog.textContent).toContain('自动退出');
-    expect(testConnectionMock).not.toHaveBeenCalled();
+    expect(testConnectionMock).toHaveBeenCalledTimes(1);
+    expect(loginMock).not.toHaveBeenCalled();
 
     fireEvent.click(within(dialog).getByRole('button', { name: '确认切换' }));
 
@@ -533,7 +536,8 @@ describe('多库账号流（sync-archive feat01）', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: '取消' }));
 
     expect((await loadSettings()).session?.email).toBe(EMAIL);
-    expect(testConnectionMock).not.toHaveBeenCalled();
+    // 仅进入页面时的一次健康探测（feat12），取消后没有任何切换请求
+    expect(testConnectionMock).toHaveBeenCalledTimes(1);
     expect(loginMock).not.toHaveBeenCalled();
   });
 
@@ -620,12 +624,66 @@ describe('多库账号流（sync-archive feat01）', () => {
     });
     fillLogin(EMAIL_B, PASSWORD);
     fireEvent.click(screen.getByRole('button', { name: '登录' }));
-    await screen.findByText('已登录 · 同步开启');
+    await screen.findByText('服务器已连接');
 
     expect((await currentLibrary()).name).toBe(libraryDbName(`${S1}#${EMAIL_B}`));
     expect(await (await currentLibrary()).bookmarks.count()).toBe(0); // B 的库是空的
     expect(
       await (await openLibrary('default')).bookmarks.count(), // 登出期间的收藏留在 default
     ).toBe(1);
+  });
+});
+
+describe('服务器连接状态实测（feat12）', () => {
+  async function renderLoggedIn(): Promise<void> {
+    const settings = await recordServerLogin(S1, {
+      email: EMAIL,
+      serverUrl: S1,
+      token: 't1',
+      expiresAt: '2030-01-01T00:00:00.000Z',
+    });
+    render(<Harness initial={settings} currentBaseUrl={S1} />);
+  }
+
+  it('场景1：未登录是默认状态，显示「未登录」且不探测服务器', () => {
+    render(<Harness initial={DEFAULT_SETTINGS} currentBaseUrl={S1} />);
+    expect(screen.getByText('未登录')).toBeTruthy();
+    expect(testConnectionMock).not.toHaveBeenCalled();
+  });
+
+  it('场景2：已登录且服务器可达 → 实测后显示「服务器已连接」', async () => {
+    await renderLoggedIn();
+    expect(await screen.findByText('服务器已连接')).toBeTruthy();
+    expect(testConnectionMock).toHaveBeenCalledWith(S1);
+  });
+
+  it('场景3：已登录但服务器不可达 → 显示「服务器不在线无法同步」，不凭缓存登录态伪装正常', async () => {
+    testConnectionMock.mockRejectedValue(new TypeError('fetch failed'));
+    await renderLoggedIn();
+    expect(await screen.findByText('服务器不在线无法同步')).toBeTruthy();
+    expect(screen.queryByText('服务器已连接')).toBeNull();
+  });
+
+  it('场景4：页面停留期间每分钟复测，服务器中途宕机/恢复都会翻转状态', async () => {
+    vi.useFakeTimers();
+    try {
+      await renderLoggedIn();
+      await act(async () => {}); // 冲刷首次探测
+      expect(screen.getByText('服务器已连接')).toBeTruthy();
+
+      testConnectionMock.mockRejectedValue(new TypeError('fetch failed')); // 服务器宕机
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(60_000);
+      });
+      expect(screen.getByText('服务器不在线无法同步')).toBeTruthy();
+
+      testConnectionMock.mockResolvedValue({ latencyMs: 10, version: 'v0.1.0' }); // 服务器恢复
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(60_000);
+      });
+      expect(screen.getByText('服务器已连接')).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Settings } from '@x-threadpick/shared';
 import { removeServerRecord, setActiveServer, updateServerRecord } from '../../db/settings';
-import { buildBaseUrl, splitBaseUrl, testConnection } from './api';
+import { buildBaseUrl, SERVER_PROBE_INTERVAL_MS, splitBaseUrl, testConnection } from './api';
 import { formatDateTime } from './format';
 
 type ConnPhase = 'idle' | 'busy' | 'ok' | 'err';
@@ -37,17 +37,21 @@ export default function ServerCard({
     null,
   );
 
-  const runTest = (targetHost: string, targetPort: string): void => {
+  // quiet：周期复测不闪「正在连接…」，只在结果出来时更新状态（feat12 场景4）
+  const runTest = useCallback((targetHost: string, targetPort: string, quiet = false): void => {
     const baseUrl = buildBaseUrl(targetHost, targetPort);
     if (baseUrl === null) {
+      if (quiet) return;
       setPhase('err');
       setConnText('连接失败');
       setConnDetail('请先填写服务器地址与端口');
       return;
     }
-    setPhase('busy');
-    setConnText(`正在连接 ${targetHost}:${targetPort} …`);
-    setConnDetail('');
+    if (!quiet) {
+      setPhase('busy');
+      setConnText(`正在连接 ${targetHost}:${targetPort} …`);
+      setConnDetail('');
+    }
     testConnection(baseUrl)
       .then((result) => {
         setPhase('ok');
@@ -59,7 +63,22 @@ export default function ServerCard({
         setConnText('连接失败');
         setConnDetail('无法访问服务器或连接超时');
       });
-  };
+  }, []);
+
+  // 进入「网络连接」页即自动探测当前服务器一次（feat12 场景1）：状态必须是实测结果，不靠上次缓存
+  const autoTested = useRef(false);
+  useEffect(() => {
+    if (autoTested.current) return;
+    if (buildBaseUrl(host, port) === null) return;
+    autoTested.current = true;
+    runTest(host, port);
+  }, [host, port, runTest]);
+
+  // 页面停留期间每分钟安静复测（feat12 场景4）：服务器中途宕机/恢复都能反映到状态上
+  useEffect(() => {
+    const timer = setInterval(() => runTest(host, port, true), SERVER_PROBE_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [host, port, runTest]);
 
   const switchServer = (baseUrl: string): void => {
     const form = splitBaseUrl(baseUrl);
