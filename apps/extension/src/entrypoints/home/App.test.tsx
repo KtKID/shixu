@@ -1,9 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
-import { createBookmark, type Session, type Settings } from '@x-threadpick/shared';
+import {
+  createBookmark,
+  ServerReachabilitySchema,
+  type Session,
+  type Settings,
+} from '@x-threadpick/shared';
 import type * as apiModule from '../../components/settings/api';
 import type * as syncModule from '../../db/sync';
+import { SERVER_REACHABILITY_KEY } from '../../lib/server-heartbeat';
 import { openLibrary, resetLibraryRuntime, writeLastSyncAt } from '../../db/library';
 import { loadSettings } from '../../db/settings';
 import App, { parseSectionHash } from './App';
@@ -84,6 +90,15 @@ beforeEach(async () => {
     changes: { added: 0, updated: 0, deleted: 0 },
     pushed: 0,
     syncedAt: '2026-09-11T12:00:00.000Z',
+  });
+  // 账号卡的服务器状态来自 background 心跳快照（feat12）；测试环境无 background，
+  // 播种一条「登录目标服务器可达」记录，loginThroughUi 的「服务器已连接」才成立
+  await browser.storage.session.set({
+    [SERVER_REACHABILITY_KEY]: ServerReachabilitySchema.parse({
+      baseUrl: 'https://s1.example:8443',
+      reachable: true,
+      checkedAt: new Date().toISOString(),
+    }),
   });
   await resetLibraryRuntime();
 });

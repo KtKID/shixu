@@ -3,6 +3,7 @@ import {
   LoginRequestSchema,
   RegisterRequestSchema,
   SessionSchema,
+  type ServerReachability,
   type Session,
   type Settings,
 } from '@x-threadpick/shared';
@@ -25,7 +26,8 @@ import {
   readCurrentLibraryServerBookmarksTotal,
   type SyncChangeSummary,
 } from '../../db/sync';
-import { login, register, SERVER_PROBE_INTERVAL_MS, testConnection } from './api';
+import { login, register, testConnection } from './api';
+import { readServerReachability, subscribeServerReachability } from '../../lib/server-heartbeat';
 import { formatDateTime } from './format';
 
 type Phase = 'idle' | 'checking' | 'submitting';
@@ -118,29 +120,27 @@ export default function AccountCard({ settings, currentBaseUrl, onSettingsChange
     };
   }, [sessionKey]);
 
-  // 实测服务器可达性（feat12 场景2）：已登录则探测 session 对应的服务器；未登录复位为 unknown（默认无登录状态）。
-  // 页面停留期间每分钟安静复测一次（场景4），服务器中途宕机/恢复都会反映到状态上。
+  // 服务器可达性来自 background 心跳（lib/server-heartbeat，5s 一次）写入 storage.session 的快照，
+  // 本卡订阅该记录（feat12 场景2/场景4）：已登录才展示；无记录或记录对应别的服务器 → 检测中。
   useEffect(() => {
     if (!loggedIn || session === null) {
       setServerStatus('unknown');
       return;
     }
+    const serverUrl = session.serverUrl;
     let active = true;
-    const probe = (): void => {
-      testConnection(session.serverUrl)
-        .then(() => {
-          if (active) setServerStatus('online');
-        })
-        .catch(() => {
-          if (active) setServerStatus('offline');
-        });
+    const apply = (record: ServerReachability | null): void => {
+      if (!active) return;
+      if (record === null || record.baseUrl !== serverUrl) setServerStatus('checking');
+      else setServerStatus(record.reachable ? 'online' : 'offline');
     };
-    setServerStatus('checking');
-    probe();
-    const timer = setInterval(probe, SERVER_PROBE_INTERVAL_MS);
+    readServerReachability()
+      .then(apply)
+      .catch((err: unknown) => console.error('[settings] 读取服务器可达性失败', err));
+    const unsubscribe = subscribeServerReachability(apply);
     return () => {
       active = false;
-      clearInterval(timer);
+      unsubscribe();
     };
   }, [loggedIn, session]);
 

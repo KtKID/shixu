@@ -4,10 +4,12 @@ import { cleanup, fireEvent, render, screen, within, act } from '@testing-librar
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import {
   DEFAULT_SETTINGS,
+  ServerReachabilitySchema,
   createBookmark,
   type Session,
   type Settings,
 } from '@x-threadpick/shared';
+import { SERVER_REACHABILITY_KEY } from '../../lib/server-heartbeat';
 import { loadSettings, recordServerLogin, setAutoSync } from '../../db/settings';
 import {
   currentLibrary,
@@ -84,8 +86,11 @@ beforeEach(async () => {
   cleanup();
   fakeBrowser.reset();
   testConnectionMock.mockReset();
-  // 默认服务器可达：已登录的用例会触发账号卡的健康探测（feat12），需要确定性的 resolved 值
+  // 默认服务器可达：登录流程会先跑 testConnection（feat03），需要确定性的 resolved 值
   testConnectionMock.mockResolvedValue({ latencyMs: 10, version: 'v0.1.0' });
+  // 账号卡的服务器状态来自 background 心跳写入的可达性快照（feat12）；
+  // 测试环境无 background，默认播种一条「S1 可达」记录，个别用例再覆盖
+  await seedReachability(S1, true);
   registerMock.mockReset();
   syncNowMock.mockReset();
   loginMock.mockReset();
@@ -93,6 +98,17 @@ beforeEach(async () => {
   syncSessionMock.mockResolvedValue(OK_SYNC);
   await resetLibraryRuntime();
 });
+
+/** 写入一条心跳可达性快照（模拟 background 心跳产物）。 */
+async function seedReachability(baseUrl: string, reachable: boolean): Promise<void> {
+  await browser.storage.session.set({
+    [SERVER_REACHABILITY_KEY]: ServerReachabilitySchema.parse({
+      baseUrl,
+      reachable,
+      checkedAt: new Date().toISOString(),
+    }),
+  });
+}
 
 describe('登录账号（feat03）', () => {
   it('场景1：登录成功显示登录状态卡片，会话与历史服务器入库', async () => {
@@ -510,12 +526,12 @@ describe('多库账号流（sync-archive feat01）', () => {
     });
     submitSwitchTo(EMAIL_B);
 
-    // 未确认前不发起任何登录/切换请求（仅进入页面时的一次健康探测，feat12）
+    // 未确认前不发起任何登录/切换请求（服务器状态由 background 心跳提供，卡片自身不探测）
     const dialog = await screen.findByRole('dialog', { name: '切换账号' });
     expect(dialog.textContent).toContain(EMAIL);
     expect(dialog.textContent).toContain(EMAIL_B);
     expect(dialog.textContent).toContain('自动退出');
-    expect(testConnectionMock).toHaveBeenCalledTimes(1);
+    expect(testConnectionMock).not.toHaveBeenCalled();
     expect(loginMock).not.toHaveBeenCalled();
 
     fireEvent.click(within(dialog).getByRole('button', { name: '确认切换' }));
@@ -536,8 +552,8 @@ describe('多库账号流（sync-archive feat01）', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: '取消' }));
 
     expect((await loadSettings()).session?.email).toBe(EMAIL);
-    // 仅进入页面时的一次健康探测（feat12），取消后没有任何切换请求
-    expect(testConnectionMock).toHaveBeenCalledTimes(1);
+    // 取消后没有任何探测/切换请求（服务器状态由 background 心跳提供，卡片自身不探测）
+    expect(testConnectionMock).not.toHaveBeenCalled();
     expect(loginMock).not.toHaveBeenCalled();
   });
 
@@ -645,45 +661,37 @@ describe('服务器连接状态实测（feat12）', () => {
     render(<Harness initial={settings} currentBaseUrl={S1} />);
   }
 
-  it('场景1：未登录是默认状态，显示「未登录」且不探测服务器', () => {
+  it('场景1：未登录是默认状态，显示「未登录」且不读服务器状态', () => {
     render(<Harness initial={DEFAULT_SETTINGS} currentBaseUrl={S1} />);
     expect(screen.getByText('未登录')).toBeTruthy();
+    expect(screen.queryByText('服务器已连接')).toBeNull();
     expect(testConnectionMock).not.toHaveBeenCalled();
   });
 
-  it('场景2：已登录且服务器可达 → 实测后显示「服务器已连接」', async () => {
+  it('场景2：已登录且心跳快照可达 → 显示「服务器已连接」', async () => {
     await renderLoggedIn();
     expect(await screen.findByText('服务器已连接')).toBeTruthy();
-    expect(testConnectionMock).toHaveBeenCalledWith(S1);
   });
 
-  it('场景3：已登录但服务器不可达 → 显示「服务器不在线无法同步」，不凭缓存登录态伪装正常', async () => {
-    testConnectionMock.mockRejectedValue(new TypeError('fetch failed'));
+  it('场景3：已登录但心跳快照不可达 → 显示「服务器不在线无法同步」，不凭缓存登录态伪装正常', async () => {
+    await seedReachability(S1, false); // 覆盖 beforeEach 的默认可达记录
     await renderLoggedIn();
     expect(await screen.findByText('服务器不在线无法同步')).toBeTruthy();
     expect(screen.queryByText('服务器已连接')).toBeNull();
   });
 
-  it('场景4：页面停留期间每分钟复测，服务器中途宕机/恢复都会翻转状态', async () => {
-    vi.useFakeTimers();
-    try {
-      await renderLoggedIn();
-      await act(async () => {}); // 冲刷首次探测
-      expect(screen.getByText('服务器已连接')).toBeTruthy();
+  it('场景4：心跳快照翻转（服务器中途宕机/恢复）实时反映到状态', async () => {
+    await renderLoggedIn();
+    expect(await screen.findByText('服务器已连接')).toBeTruthy();
 
-      testConnectionMock.mockRejectedValue(new TypeError('fetch failed')); // 服务器宕机
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(60_000);
-      });
-      expect(screen.getByText('服务器不在线无法同步')).toBeTruthy();
+    await act(async () => {
+      await seedReachability(S1, false); // 服务器宕机
+    });
+    expect(await screen.findByText('服务器不在线无法同步')).toBeTruthy();
 
-      testConnectionMock.mockResolvedValue({ latencyMs: 10, version: 'v0.1.0' }); // 服务器恢复
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(60_000);
-      });
-      expect(screen.getByText('服务器已连接')).toBeTruthy();
-    } finally {
-      vi.useRealTimers();
-    }
+    await act(async () => {
+      await seedReachability(S1, true); // 服务器恢复
+    });
+    expect(await screen.findByText('服务器已连接')).toBeTruthy();
   });
 });

@@ -1,6 +1,7 @@
 import { registerCaptureCommand } from '../lib/capture-invoke';
 import { ACCOUNT_FEATURES } from '../lib/variant';
 import { handleAutoSyncTrigger } from '../db/autosync';
+import { startServerHeartbeat } from '../lib/server-heartbeat';
 import { watchNewTabTakeover } from '../lib/newtab';
 
 export default defineBackground(() => {
@@ -12,6 +13,8 @@ export default defineBackground(() => {
     browser.runtime.onMessage.addListener((raw: unknown) => {
       handleAutoSyncTrigger(raw);
     });
+    // 服务器心跳：每 5s 探测一次 /healthz，断连时图标打红色 badge（lib/server-heartbeat）
+    startServerHeartbeat();
   }
   // 新标签页接管（feat-newtab）：设置里勾选后才把手动新建的空白标签页换成主页，默认零干预
   watchNewTabTakeover();
